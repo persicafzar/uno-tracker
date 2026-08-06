@@ -1,0 +1,3 @@
+ # Ignore session files
+uno-tracker/storage/sessions/
+sess_*

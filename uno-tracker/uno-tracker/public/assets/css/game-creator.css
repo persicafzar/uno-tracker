@@ -1,0 +1,81 @@
+/* 🆕 SortableJS Styles */
+
+/* Ghost element (placeholder) */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #e0e7ff !important;
+    border: 2px dashed #6366f1 !important;
+}
+
+/* Chosen element (being dragged) */
+.sortable-chosen {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
+}
+
+/* Drag element (clone) */
+.sortable-drag {
+    opacity: 0.9;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+}
+
+/* Fallback for mobile */
+.sortable-fallback {
+    opacity: 0.9;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* 🆕 Hover effects for draggable items */
+.sortable-player-item:hover {
+    transform: translateX(4px);
+}
+
+.sortable-team-member:hover {
+    transform: translateX(4px);
+}
+
+/* 🆕 Cursor styles */
+.sortable-player-item,
+.sortable-team-member {
+    cursor: grab;
+}
+
+.sortable-player-item:active,
+.sortable-team-member:active {
+    cursor: grabbing;
+}
+
+/* 🆕 Team drop zone hover */
+.team-drop-zone {
+    transition: all 0.3s ease;
+}
+
+.team-drop-zone:hover {
+    background: #f9fafb;
+}
+
+/* 🆕 Animation for drag handle */
+.sortable-player-item svg,
+.sortable-team-member svg {
+    transition: all 0.2s ease;
+}
+
+.sortable-player-item:hover svg,
+.sortable-team-member:hover svg {
+    transform: scale(1.2);
+}
+
+/* 🆕 Mobile optimizations */
+@media (max-width: 640px) {
+    .sortable-player-item,
+    .sortable-team-member {
+        padding: 0.75rem;
+    }
+    
+    .sortable-player-item svg,
+    .sortable-team-member svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}

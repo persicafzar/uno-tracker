@@ -1,0 +1,327 @@
+/* ============================================
+   🎨 استایل‌های Notifications - نسخه نهایی
+   ============================================ */
+
+/* 🆕 Toast Container */
+.swal2-container.swal2-top-end {
+    padding: 16px !important;
+    z-index: 99999 !important;
+}
+
+/* 🆕 Base Toast Style */
+.swal2-toast {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    padding: 12px 40px 12px 16px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    font-family: 'Vazir', sans-serif !important;
+    direction: rtl !important;
+    min-width: 280px !important;
+    max-width: 400px !important;
+    position: relative !important;
+}
+
+/* 🆕 Title */
+.swal2-toast .swal2-title {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    text-align: right !important;
+    direction: rtl !important;
+    color: #1f2937 !important;
+    flex: 1 !important;
+    line-height: 1.4 !important;
+}
+
+/* 🆕 دکمه Close - بزرگ و قابل کلیک */
+.swal2-toast .swal2-close {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+    color: #6b7280 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s !important;
+    padding: 0 !important;
+    z-index: 10 !important;
+}
+
+.swal2-toast .swal2-close:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+    color: #1f2937 !important;
+    transform: scale(1.1) !important;
+}
+
+.swal2-toast .swal2-close:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
+}
+
+/* 🆕 حذف آیکون‌های پیش‌فرض SweetAlert */
+.swal2-toast .swal2-icon {
+    display: none !important;
+}
+
+/* 🆕 انیمیشن ورود */
+.swal2-toast {
+    animation: toastSlideIn 0.3s ease-out !important;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 🆕 انیمیشن خروج */
+.swal2-toast.swal2-hide {
+    animation: toastSlideOut 0.3s ease-in forwards !important;
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* ============================================
+   🎨 Notification Types
+   ============================================ */
+
+/* 🏆 برنده بازی (Modal - در مرکز) */
+.swal2-popup.notification-game-win {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    border: 3px solid #f59e0b !important;
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.5) !important;
+    animation: gameWinPulse 2s ease-in-out infinite !important;
+    direction: rtl !important;
+    font-family: 'Vazir', sans-serif !important;
+}
+
+@keyframes gameWinPulse {
+    0%, 100% { 
+        box-shadow: 0 0 40px rgba(245, 158, 11, 0.5);
+    }
+    50% { 
+        box-shadow: 0 0 60px rgba(245, 158, 11, 0.8);
+    }
+}
+
+/* 🎉 برنده دور (Toast) */
+.swal2-popup.notification-round-win {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+    border: 2px solid #10b981 !important;
+}
+
+/* 💔 بازنده دور (Toast) */
+.swal2-popup.notification-round-lose {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+    border: 2px solid #ef4444 !important;
+}
+
+/* 🎮 شروع بازی (Toast) */
+.swal2-popup.notification-game-start {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    border: 2px solid #3b82f6 !important;
+}
+
+/* ⏸️ توقف بازی (Toast) */
+.swal2-popup.notification-game-pause {
+    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
+    border: 2px solid #f97316 !important;
+}
+
+/* ▶️ ادامه بازی (Toast) */
+.swal2-popup.notification-game-resume {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%) !important;
+    border: 2px solid #6366f1 !important;
+}
+
+/* 📊 ثبت دور - تماشاچی (Toast) */
+.swal2-popup.notification-round-recorded {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+    border: 2px solid #9ca3af !important;
+}
+
+/* 🔔 پیش‌فرض (Toast) */
+.swal2-popup.notification-default {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+    border: 2px solid #e5e7eb !important;
+}
+
+/* 🎊 Confetti */
+.notification-confetti {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 99999;
+}
+
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    animation: confetti-fall 3s linear forwards;
+}
+
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* 🎯 Responsive */
+@media (max-width: 640px) {
+    .swal2-toast {
+        min-width: 240px !important;
+        max-width: 320px !important;
+        padding: 10px 36px 10px 12px !important;
+    }
+    
+    .swal2-toast .swal2-title {
+        font-size: 12px !important;
+    }
+    
+    .swal2-toast .swal2-close {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 16px !important;
+    }
+}
+
+/* ============================================
+   🎬 انیمیشن‌های ورود و خروج Modal
+   ============================================ */
+
+/* 🆕 انیمیشن ورود Modal */
+.swal2-popup.notification-game-win {
+    animation: modalSlideIn 0.4s ease-out !important;
+}
+
+@keyframes modalSlideIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.7) translateY(-30px);
+    }
+    60% {
+        transform: scale(1.05) translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 🆕 انیمیشن خروج Modal (رفع مشکل شفاف شدن) */
+.swal2-popup.swal2-hide {
+    animation: modalFadeOut 0.3s ease-in forwards !important;
+}
+
+@keyframes modalFadeOut {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.85);
+        visibility: hidden;
+    }
+}
+
+/* 🆕 انیمیشن خروج Toast */
+.swal2-toast.swal2-hide {
+    animation: toastSlideOut 0.3s ease-in forwards !important;
+}
+
+@keyframes toastSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(100%);
+        visibility: hidden;
+    }
+}
+
+/* 🆕 اطمینان از مخفی شدن کامل بعد از انیمیشن */
+.swal2-popup[style*="display: none"] {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* 🆕 Backdrop Animation */
+.swal2-backdrop-show {
+    animation: backdropFadeIn 0.3s ease-out !important;
+}
+
+.swal2-backdrop-hide {
+    animation: backdropFadeOut 0.3s ease-in forwards !important;
+}
+
+@keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes backdropFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* 🆕 دکمه Confirm بزرگ‌تر و جذاب‌تر */
+.swal2-popup.notification-game-win .swal2-confirm {
+    font-size: 18px !important;
+    padding: 12px 32px !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    transition: all 0.2s !important;
+    margin-top: 16px !important;
+}
+
+.swal2-popup.notification-game-win .swal2-confirm:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4) !important;
+}
+
+/* 🆕 Title بزرگ‌تر برای Game Winner */
+.swal2-popup.notification-game-win .swal2-title {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important;
+}

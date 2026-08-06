@@ -1,0 +1,189 @@
+/* 📱 UNO Tracker - Mobile-First Responsive Design */
+
+/* Base Styles */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Vazirmatn', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Touch-friendly elements */
+@media (hover: none) {
+    button, a, input, select {
+        min-height: 44px;
+    }
+}
+
+/* Mobile Optimizations (max-width: 640px) */
+@media screen and (max-width: 640px) {
+    /* Typography */
+    h1 { font-size: 1.25rem !important; line-height: 1.4 !important; }
+    h2 { font-size: 1.125rem !important; }
+    h3 { font-size: 1rem !important; }
+    
+    /* Spacing */
+    .p-6 { padding: 1rem !important; }
+    .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+    .py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+    .mb-4 { margin-bottom: 1rem !important; }
+    .mb-6 { margin-bottom: 1.5rem !important; }
+    .gap-4 { gap: 1rem !important; }
+    
+    /* Cards */
+    .rounded-xl { border-radius: 0.75rem !important; }
+    .rounded-2xl { border-radius: 1rem !important; }
+    
+    /* Buttons */
+    button {
+        font-size: 0.875rem !important;
+        padding: 0.625rem 1rem !important;
+    }
+    
+    /* Forms */
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        padding: 0.625rem 0.875rem !important;
+    }
+    
+    /* Checkboxes & Radio - Normal size */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+    
+    /* Player avatars */
+    img.rounded-full {
+        border-width: 1px !important;
+    }
+    
+    /* Grid adjustments */
+    .grid { gap: 0.75rem !important; }
+    
+    /* Captcha */
+    .captcha-image {
+        font-size: 28px !important;
+        letter-spacing: 3px !important;
+    }
+    
+    .captcha-container {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    .captcha-input {
+        width: 100% !important;
+    }
+}
+
+/* Small Mobile (max-width: 480px) */
+@media screen and (max-width: 480px) {
+    .max-w-6xl {
+        max-width: 100% !important;
+        padding: 0 0.5rem !important;
+    }
+    
+    .bg-gradient-to-r {
+        padding: 1rem !important;
+    }
+    
+    /* Stack grids */
+    .md\:grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Smaller buttons */
+    button {
+        padding: 0.5rem 0.875rem !important;
+        font-size: 0.8125rem !important;
+    }
+    
+    /* Reduce padding */
+    .p-4 { padding: 0.875rem !important; }
+}
+
+/* Tablet and up (min-width: 768px) */
+@media screen and (min-width: 768px) {
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Mobile menu slide from right */
+#mobile-menu {
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+}
+
+#mobile-menu:not(.hidden) {
+    transform: translateX(0);
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Safe area for notched devices */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+    }
+}
+
+/* Prevent text size adjustment */
+html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c7c7c7;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Form focus styles */
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: #4f46e5;
+}
+
+/* Loading animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
