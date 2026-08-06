@@ -63,7 +63,29 @@ class Database
         $stmt->execute($params);
         return $stmt;
     }
+    /**
+     * اجرای کوئری بدون بازگرداندن نتیجه (برای INSERT/UPDATE/DELETE)
+     * 
+     * @param string $sql
+     * @param array $params
+     * @return int تعداد ردیف‌های تحت تأثیر (rowCount)
+     */
+    public function execute(string $sql, array $params = []): int
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    }
 
+    /**
+     * گرفتن آخرین ID وارد شده (بعد از INSERT)
+     * 
+     * @return int
+     */
+    public function lastInsertId(): int
+    {
+        return (int) $this->pdo->lastInsertId();
+    }
     /**
      * گرفتن یک ردیف
      */

@@ -10,16 +10,26 @@
     <div class="space-y-2.5 sm:space-y-3">
         <?php foreach ($recentGames as $game): ?>
             <?php
+            // 🆕 اصلاح: تشخیص صحیح برنده در حالت تیمی
             $isWinner = false;
-            if (!empty($game['winner_participant_id'])) {
-                $winnerParticipant = \Core\Database::getInstance()->fetchOne(
-                    "SELECT user_id FROM game_participants WHERE id = ?",
-                    [$game['winner_participant_id']]
-                );
-                $isWinner = $winnerParticipant && (int)$winnerParticipant['user_id'] === $currentUserId;
+            $isTeamMode = ($game['game_mode'] ?? '') === 'friendly';
+
+            if ($isTeamMode) {
+                // در حالت تیمی: بررسی اینکه آیا تیم کاربر، تیم برنده است
+                if (!empty($game['winner_team_id']) && !empty($game['user_team_id'])) {
+                    $isWinner = (int)$game['winner_team_id'] === (int)$game['user_team_id'];
+                }
+            } else {
+                // در حالت انفرادی: بررسی winner_participant_id
+                if (!empty($game['winner_participant_id'])) {
+                    $winnerParticipant = \Core\Database::getInstance()->fetchOne(
+                        "SELECT user_id FROM game_participants WHERE id = ?",
+                        [$game['winner_participant_id']]
+                    );
+                    $isWinner = $winnerParticipant && (int)$winnerParticipant['user_id'] === $currentUserId;
+                }
             }
 
-            $isTeamMode = ($game['game_mode'] ?? '') === 'friendly';
             $status = $game['status'] ?? 'pending';
             $isActive = ($status === 'active');
             $isPaused = ($status === 'paused');

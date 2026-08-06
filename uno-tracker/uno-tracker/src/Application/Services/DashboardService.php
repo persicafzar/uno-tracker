@@ -36,7 +36,7 @@ class DashboardService
     }
 
     /**
-     * گرفتن داده‌های نمودار پیشرفت
+     * گرفتن داده‌های نمودار پیشرفت - 🆕 با پشتیبانی از حالت تیمی
      */
     public function getProgressData(int $userId, int $days = 30): array
     {
@@ -44,17 +44,22 @@ class DashboardService
 
         $games = $this->db->fetchAll(
             "SELECT 
-                DATE(g.created_at) as date,
-                COUNT(*) as games_count,
-                SUM(gp.total_score) as total_points,
-                SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as wins
-             FROM games g
-             JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.created_at >= ?
-             AND g.status = 'finished'
-             GROUP BY DATE(g.created_at)
-             ORDER BY date ASC",
+            DATE(g.created_at) as date,
+            COUNT(*) as games_count,
+            SUM(gp.total_score) as total_points,
+            SUM(CASE 
+                WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0 
+            END) as wins
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.created_at >= ?
+         AND g.status = 'finished'
+         GROUP BY DATE(g.created_at)
+         ORDER BY date ASC",
             [$userId, $startDate]
         );
 
@@ -80,23 +85,27 @@ class DashboardService
     }
 
     /**
-     * گرفتن توزیع بردها
+     * گرفتن توزیع بردها - 🆕 با پشتیبانی از حالت تیمی
      */
     public function getWinDistribution(int $userId): array
     {
         $distribution = $this->db->fetchAll(
             "SELECT 
-                CASE 
-                    WHEN g.game_mode = 'solo' THEN 'انفرادی'
-                    WHEN g.game_mode = 'friendly' THEN 'تیمی'
-                END as mode,
-                COUNT(*) as count
-             FROM games g
-             JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.status = 'finished'
-             AND g.winner_participant_id = gp.id
-             GROUP BY g.game_mode",
+            CASE 
+                WHEN g.game_mode = 'solo' THEN 'انفرادی'
+                WHEN g.game_mode = 'friendly' THEN 'تیمی'
+            END as mode,
+            COUNT(*) as count
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'finished'
+         AND (
+             (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
+             OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                 AND g.winner_team_id = gp.team_id)
+         )
+         GROUP BY g.game_mode",
             [$userId]
         );
 
@@ -112,7 +121,7 @@ class DashboardService
     }
 
     /**
-     * گرفتن خلاصه ماهانه بازی‌ها
+     * گرفتن خلاصه ماهانه بازی‌ها - 🆕 با پشتیبانی از حالت تیمی
      */
     public function getMonthlySummary(int $userId, int $months = 6): array
     {
@@ -120,22 +129,29 @@ class DashboardService
 
         $games = $this->db->fetchAll(
             "SELECT 
-                g.id,
-                g.name,
-                g.game_mode,
-                g.created_at,
-                g.winner_participant_id,
-                gp.wins_count,
-                gp.total_score,
-                (g.winner_participant_id = gp.id) as is_winner,
-                (SELECT COUNT(*) FROM game_participants gp2 WHERE gp2.game_id = g.id) as total_players,
-                (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams
-             FROM games g
-             JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.created_at >= ?
-             AND g.status = 'finished'
-             ORDER BY g.created_at DESC",
+            g.id,
+            g.name,
+            g.game_mode,
+            g.created_at,
+            g.winner_participant_id,
+            g.winner_team_id,
+            gp.wins_count,
+            gp.total_score,
+            gp.team_id,
+            CASE 
+                WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0
+            END as is_winner,
+            (SELECT COUNT(*) FROM game_participants gp2 WHERE gp2.game_id = g.id) as total_players,
+            (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.created_at >= ?
+         AND g.status = 'finished'
+         ORDER BY g.created_at DESC",
             [$userId, $startDate]
         );
 
@@ -208,8 +224,7 @@ class DashboardService
     }
 
     /**
-     * 🆕 گرفتن مقایسه با رقبا - اصلاح شده
-     * رتبه کاربر از بین همه محاسبه می‌شود، نه فقط ۱۰ نفر اول
+     * 🆕 گرفتن مقایسه با رقبا - اصلاح شده با پشتیبانی از حالت تیمی
      */
     public function getFriendsComparison(int $userId, string $period = 'all', string $mode = 'rivals'): array
     {
@@ -237,10 +252,16 @@ class DashboardService
                 break;
         }
 
-        if ($mode === 'rivals') {
-            // 🆕 حالت ۱: فقط کاربرانی که با این کاربر بازی کرده‌اند
+        // 🆕 Query اصلاح شده برای شمارش بردها (پشتیبانی از تیمی)
+        $winCaseSql = "SUM(CASE 
+        WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+        WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+             AND g.winner_team_id = gp.team_id THEN 1
+        ELSE 0 
+    END)";
 
-            // مرحله ۱: گرفتن بازی‌های کاربر
+        if ($mode === 'rivals') {
+            // حالت ۱: فقط کاربرانی که با این کاربر بازی کرده‌اند
             $params = [$userId];
             $dateCondition = '';
 
@@ -251,8 +272,8 @@ class DashboardService
 
             $userGames = $this->db->fetchAll(
                 "SELECT g.id FROM games g
-                 JOIN game_participants gp ON g.id = gp.game_id
-                 WHERE gp.user_id = ? {$dateCondition} AND g.status = 'finished'",
+             JOIN game_participants gp ON g.id = gp.game_id
+             WHERE gp.user_id = ? {$dateCondition} AND g.status = 'finished'",
                 $params
             );
 
@@ -270,33 +291,32 @@ class DashboardService
             $gameIds = array_column($userGames, 'id');
             $gameIdsStr = implode(',', array_map('intval', $gameIds));
 
-            // 🆕 مرحله ۲: گرفتن همه رقبا (نه فقط ۱۰ نفر)
+            // 🆕 Query اصلاح شده
             $allPlayers = $this->db->fetchAll(
                 "SELECT 
-                    u.id,
-                    u.nickname,
-                    u.avatar_path,
-                    COUNT(DISTINCT g.id) as games_played,
-                    SUM(gp.total_score) as total_points,
-                    SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as total_wins,
-                    ROUND(
-                        (SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) * 100.0) / 
-                        NULLIF(COUNT(DISTINCT g.id), 0), 
-                        1
-                    ) as win_rate
-                 FROM users u
-                 JOIN game_participants gp ON u.id = gp.user_id
-                 JOIN games g ON gp.game_id = g.id
-                 WHERE g.id IN ({$gameIdsStr})
-                 AND g.status = 'finished'
-                 GROUP BY u.id, u.nickname, u.avatar_path
-                 HAVING COUNT(DISTINCT g.id) >= 1
-                 ORDER BY total_points DESC, total_wins DESC, win_rate DESC",
+                u.id,
+                u.nickname,
+                u.avatar_path,
+                COUNT(DISTINCT g.id) as games_played,
+                SUM(gp.total_score) as total_points,
+                {$winCaseSql} as total_wins,
+                ROUND(
+                    ({$winCaseSql} * 100.0) / 
+                    NULLIF(COUNT(DISTINCT g.id), 0), 
+                    1
+                ) as win_rate
+             FROM users u
+             JOIN game_participants gp ON u.id = gp.user_id
+             JOIN games g ON gp.game_id = g.id
+             WHERE g.id IN ({$gameIdsStr})
+             AND g.status = 'finished'
+             GROUP BY u.id, u.nickname, u.avatar_path
+             HAVING COUNT(DISTINCT g.id) >= 1
+             ORDER BY total_points DESC, total_wins DESC, win_rate DESC",
                 []
             );
         } else {
-            // 🆕 حالت ۲: همه کاربران سایت
-
+            // حالت ۲: همه کاربران سایت
             $params = [];
             $dateCondition = '';
 
@@ -305,32 +325,32 @@ class DashboardService
                 $params[] = $startDate;
             }
 
-            // 🆕 گرفتن همه کاربران (نه فقط ۱۰ نفر)
+            // 🆕 Query اصلاح شده
             $allPlayers = $this->db->fetchAll(
                 "SELECT 
-                    u.id,
-                    u.nickname,
-                    u.avatar_path,
-                    COUNT(DISTINCT g.id) as games_played,
-                    SUM(gp.total_score) as total_points,
-                    SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as total_wins,
-                    ROUND(
-                        (SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) * 100.0) / 
-                        NULLIF(COUNT(DISTINCT g.id), 0), 
-                        1
-                    ) as win_rate
-                 FROM users u
-                 JOIN game_participants gp ON u.id = gp.user_id
-                 JOIN games g ON gp.game_id = g.id
-                 WHERE g.status = 'finished' {$dateCondition}
-                 GROUP BY u.id, u.nickname, u.avatar_path
-                 HAVING COUNT(DISTINCT g.id) >= 1
-                 ORDER BY total_points DESC, total_wins DESC, win_rate DESC",
+                u.id,
+                u.nickname,
+                u.avatar_path,
+                COUNT(DISTINCT g.id) as games_played,
+                SUM(gp.total_score) as total_points,
+                {$winCaseSql} as total_wins,
+                ROUND(
+                    ({$winCaseSql} * 100.0) / 
+                    NULLIF(COUNT(DISTINCT g.id), 0), 
+                    1
+                ) as win_rate
+             FROM users u
+             JOIN game_participants gp ON u.id = gp.user_id
+             JOIN games g ON gp.game_id = g.id
+             WHERE g.status = 'finished' {$dateCondition}
+             GROUP BY u.id, u.nickname, u.avatar_path
+             HAVING COUNT(DISTINCT g.id) >= 1
+             ORDER BY total_points DESC, total_wins DESC, win_rate DESC",
                 $params
             );
         }
 
-        // 🆕 مرحله ۳: محاسبه رتبه کاربر از بین همه
+        // محاسبه رتبه کاربر از بین همه
         $userRank = null;
         $totalPlayers = count($allPlayers);
 
@@ -341,13 +361,13 @@ class DashboardService
             }
         }
 
-        // 🆕 مرحله ۴: فقط ۱۰ نفر اول را برای نمایش ببر
+        // فقط ۱۰ نفر اول را برای نمایش ببر
         $players = array_slice($allPlayers, 0, 10);
 
         return [
             'friends' => $players,
             'user_rank' => $userRank,
-            'total_players' => $totalPlayers, // 🆕 تعداد کل، نه فقط نمایش داده شده
+            'total_players' => $totalPlayers,
             'mode' => $mode,
             'period' => $period,
             'period_label' => $periodLabel,
@@ -355,7 +375,7 @@ class DashboardService
     }
 
     /**
-     * گرفتن آمار هفتگی
+     * گرفتن آمار هفتگی - 🆕 با پشتیبانی از حالت تیمی
      */
     public function getWeeklyStats(int $userId): array
     {
@@ -373,14 +393,19 @@ class DashboardService
 
             $dayStats = $this->db->fetchOne(
                 "SELECT 
-                    COUNT(*) as games,
-                    SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as wins,
-                    SUM(gp.total_score) as points
-                 FROM games g
-                 JOIN game_participants gp ON g.id = gp.game_id
-                 WHERE gp.user_id = ? 
-                 AND DATE(g.created_at) = ?
-                 AND g.status = 'finished'",
+                COUNT(*) as games,
+                SUM(CASE 
+                    WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                    WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                         AND g.winner_team_id = gp.team_id THEN 1
+                    ELSE 0 
+                END) as wins,
+                SUM(gp.total_score) as points
+             FROM games g
+             JOIN game_participants gp ON g.id = gp.game_id
+             WHERE gp.user_id = ? 
+             AND DATE(g.created_at) = ?
+             AND g.status = 'finished'",
                 [$userId, $dateStr]
             );
 

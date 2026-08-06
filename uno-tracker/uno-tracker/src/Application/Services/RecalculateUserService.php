@@ -20,21 +20,39 @@ class RecalculateUserService
     {
         $this->db->beginTransaction();
         try {
-            // ۱. محاسبه آمار پایه از بازی‌های 'finished' باقی‌مانده
+            // ۱. 🆕 محاسبه آمار پایه با پشتیبانی کامل از حالت تیمی
             $stats = $this->db->fetchOne(
                 "SELECT 
                     COUNT(DISTINCT g.id) as total_games,
-                    SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as total_wins,
+                    SUM(CASE 
+                        -- Solo mode: تطابق مستقیم با winner_participant_id
+                        WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                        -- Team mode: عضو تیم برنده بودن
+                        WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                            AND g.winner_team_id = gp.team_id THEN 1
+                        ELSE 0 
+                    END) as total_wins,
+                    SUM(CASE 
+                        WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                            AND g.winner_team_id = gp.team_id THEN 1
+                        ELSE 0 
+                    END) as team_wins,
+                    SUM(CASE 
+                        WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                        ELSE 0 
+                    END) as solo_wins,
                     COALESCE(SUM(gp.total_score), 0) as total_points
-                 FROM games g
-                 INNER JOIN game_participants gp ON g.id = gp.game_id
-                 WHERE gp.user_id = ? AND g.status = 'finished'",
+                FROM games g
+                INNER JOIN game_participants gp ON g.id = gp.game_id
+                WHERE gp.user_id = ? AND g.status = 'finished'",
                 [$userId]
             );
 
             $totalGames = (int)($stats['total_games'] ?? 0);
             $totalWins = (int)($stats['total_wins'] ?? 0);
             $totalPoints = (float)($stats['total_points'] ?? 0);
+            $teamWins = (int)($stats['team_wins'] ?? 0);
+            $soloWins = (int)($stats['solo_wins'] ?? 0);
 
             // ۲. محاسبه XP و سطح جدید
             $xpMultiplier = (float)($this->db->fetchOne("SELECT setting_value FROM system_settings WHERE setting_key = 'scoring_xp_multiplier'")['setting_value'] ?? 2.0);
@@ -119,24 +137,93 @@ class RecalculateUserService
         }
     }
 
+
     private function getCurrentValue(string $conditionType, int $userId): int
     {
         switch ($conditionType) {
             case 'total_games':
-                $res = $this->db->fetchOne("SELECT COUNT(DISTINCT g.id) as count FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished'", [$userId]);
+                $res = $this->db->fetchOne(
+                    "SELECT COUNT(DISTINCT g.id) as count 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? AND g.status = 'finished'",
+                    [$userId]
+                );
                 return (int)($res['count'] ?? 0);
+
             case 'total_wins':
-                $res = $this->db->fetchOne("SELECT COUNT(*) as count FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished' AND g.winner_participant_id = gp.id", [$userId]);
+                // 🆕 محاسبه صحیح کل بردها (شامل Solo و Team)
+                $res = $this->db->fetchOne(
+                    "SELECT COUNT(DISTINCT g.id) as count 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? 
+                 AND g.status = 'finished'
+                 AND (
+                     (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
+                     OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                         AND g.winner_team_id = gp.team_id)
+                 )",
+                    [$userId]
+                );
                 return (int)($res['count'] ?? 0);
+
             case 'total_points':
-                $res = $this->db->fetchOne("SELECT SUM(gp.total_score) as total FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished'", [$userId]);
+                $res = $this->db->fetchOne(
+                    "SELECT SUM(gp.total_score) as total 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? AND g.status = 'finished'",
+                    [$userId]
+                );
                 return (int)($res['total'] ?? 0);
+
             case 'best_streak':
                 $res = $this->db->fetchOne("SELECT best_streak FROM user_streaks WHERE user_id = ?", [$userId]);
                 return (int)($res['best_streak'] ?? 0);
+
             case 'team_wins':
-                $res = $this->db->fetchOne("SELECT COUNT(*) as count FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.game_mode = 'friendly' AND g.status = 'finished' AND g.winner_participant_id = gp.id", [$userId]);
+                // 🆕 محاسبه صحیح بردهای تیمی
+                $res = $this->db->fetchOne(
+                    "SELECT COUNT(DISTINCT g.id) as count 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? 
+                 AND g.game_mode = 'friendly' 
+                 AND g.status = 'finished' 
+                 AND g.winner_team_id IS NOT NULL
+                 AND g.winner_team_id = gp.team_id",
+                    [$userId]
+                );
                 return (int)($res['count'] ?? 0);
+
+            case 'solo_wins':
+                // 🆕 محاسبه صحیح بردهای انفرادی
+                $res = $this->db->fetchOne(
+                    "SELECT COUNT(DISTINCT g.id) as count 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? 
+                 AND g.game_mode = 'solo' 
+                 AND g.status = 'finished' 
+                 AND g.winner_participant_id = gp.id",
+                    [$userId]
+                );
+                return (int)($res['count'] ?? 0);
+
+            case 'team_games':
+                // 🆕 تعداد بازی‌های تیمی
+                $res = $this->db->fetchOne(
+                    "SELECT COUNT(DISTINCT g.id) as count 
+                 FROM games g 
+                 JOIN game_participants gp ON g.id = gp.game_id 
+                 WHERE gp.user_id = ? 
+                 AND g.game_mode = 'friendly' 
+                 AND g.status = 'finished'",
+                    [$userId]
+                );
+                return (int)($res['count'] ?? 0);
+
             default:
                 return 0;
         }

@@ -6,15 +6,21 @@
 
 $db = \Core\Database::getInstance();
 $currentUserId = $userId ?? ($profile['user_id'] ?? $profile['id'] ?? 0);
-
-// آمار فعلی کاربر
+// 🆕 آمار فعلی کاربر - با پشتیبانی کامل از برد تیمی
 $userStats = $db->fetchOne(
     "SELECT 
         (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished') as total_games,
-        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished' AND g.winner_participant_id = gp.id) as total_wins,
+        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.status = 'finished' 
+         AND (
+             (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
+             OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id)
+         )) as total_wins,
         (SELECT best_streak FROM user_streaks WHERE user_id = ?) as best_streak,
         (SELECT current_streak FROM user_streaks WHERE user_id = ?) as current_streak,
-        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.game_mode = 'friendly' AND g.status = 'finished' AND g.winner_participant_id = gp.id) as team_wins,
+        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.game_mode = 'friendly' AND g.status = 'finished' 
+         AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id) as team_wins,
         (SELECT COALESCE(SUM(gp.total_score), 0) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished') as total_points
     ",
     [$currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId]

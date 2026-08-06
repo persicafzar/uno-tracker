@@ -426,13 +426,13 @@ class GameService
                     'total_rounds_played' => $roundNumber,
                 ], 'id = ?', [$gameId]);
 
-                $db->query(
+                $db->execute(
                     "UPDATE game_participants SET wins_count = wins_count + 1 WHERE id = ?",
                     [$winnerParticipantId]
                 );
 
                 if ($game->isTeamMode() && $winner->team_id) {
-                    $db->query(
+                    $db->execute(
                         "UPDATE teams SET wins_count = wins_count + 1 WHERE id = ?",
                         [$winner->team_id]
                     );
@@ -529,14 +529,14 @@ class GameService
                     return ['success' => false, 'error' => 'هیچ دوری برای لغو وجود ندارد'];
                 }
 
-                $db->query(
+                $db->execute(
                     "UPDATE game_participants SET wins_count = GREATEST(0, wins_count - 1) WHERE id = ?",
                     [$lastRound['winner_participant_id']]
                 );
 
                 $winner = $this->participantRepo->findById($lastRound['winner_participant_id']);
                 if ($game->isTeamMode() && $winner->team_id) {
-                    $db->query(
+                    $db->execute(
                         "UPDATE teams SET wins_count = GREATEST(0, wins_count - 1) WHERE id = ?",
                         [$winner->team_id]
                     );
@@ -730,7 +730,13 @@ class GameService
     }
 
     /**
-     * پایان بازی - 🆕 با محاسبه XP کامل
+     * 🏆 پایان بازی - نسخه کامل با پشتیبانی از حالت تیمی
+     * 
+     * اصلاحات:
+     * - ذخیره winner_team_id در حالت تیمی
+     * - علامت‌گذاری همه اعضای تیم برنده
+     * - اعطای XP به همه اعضای تیم برنده (نه فقط یک نفر)
+     * - Broadcast صحیح با لیست اعضای برنده
      */
     public function finishGame(int $gameId, int $refereeId): array
     {
@@ -751,6 +757,7 @@ class GameService
 
                 $game->participants = $this->participantRepo->findByGameId($gameId);
 
+                // 🆕 بارگذاری تیم‌ها در حالت تیمی
                 if ($game->isTeamMode()) {
                     $teams = $this->db->fetchAll(
                         "SELECT * FROM teams WHERE game_id = ?",
@@ -771,96 +778,137 @@ class GameService
                     return ['success' => false, 'error' => 'بازی هنوز برنده‌ای ندارد'];
                 }
 
-                $winner = $game->getWinner();
+                // 🆕 تشخیص حالت تیمی یا انفرادی
+                $isTeamMode = $game->isTeamMode();
+                $winningTeam = $isTeamMode ? $game->getWinningTeam() : null;
+                $winnerTeamId = $winningTeam ? $winningTeam->id : null;
 
-                if (!$winner) {
+                // در حالت Solo، برنده فردی را بگیر
+                $soloWinner = !$isTeamMode ? $game->getWinner() : null;
+
+                if (!$winningTeam && !$soloWinner) {
                     return ['success' => false, 'error' => 'برنده‌ای یافت نشد'];
                 }
 
+                // 🆕 به‌روزرسانی بازی با اطلاعات کامل برنده
                 $db->update('games', [
                     'status' => Game::STATUS_FINISHED,
-                    'winner_participant_id' => $winner->id,
+                    'winner_participant_id' => $isTeamMode ? null : $soloWinner->id,
+                    'winner_team_id' => $winnerTeamId,
                     'finished_at' => date('Y-m-d H:i:s'),
                 ], 'id = ?', [$gameId]);
+
+                // 🆕 علامت‌گذاری برندگان
+                if ($isTeamMode && $winnerTeamId) {
+                    // در حالت تیمی: همه اعضای تیم برنده
+                    $db->execute(
+                        "UPDATE game_participants SET is_winner = 1 WHERE game_id = ? AND team_id = ?",
+                        [$gameId, $winnerTeamId]
+                    );
+                    $winningMembers = $game->getWinningTeamMembers();
+                    log_message("✅ Team victory: " . count($winningMembers) . " members of team {$winnerTeamId} marked as winners");
+                } else {
+                    // در حالت انفرادی: فقط یک نفر
+                    $db->execute(
+                        "UPDATE game_participants SET is_winner = 1 WHERE id = ?",
+                        [$soloWinner->id]
+                    );
+                    $winningMembers = [$soloWinner];
+                }
 
                 // 🆕 محاسبه و به‌روزرسانی XP برای همه بازیکنان
                 $scoringService = new ScoringService();
 
                 foreach ($game->participants as $participant) {
-                    if ($participant->user_id) {
-                        $isGameWinner = ($participant->id === $winner->id);
+                    if (!$participant->user_id) continue;
 
-                        if ($isGameWinner) {
-                            // XP برنده بازی
-                            $xp = $scoringService->calculateWinnerXP((float) $participant->total_score);
-                        } else {
-                            // XP عادی
-                            $xp = $scoringService->calculatePlayerXP(
-                                (float) $participant->total_score,
-                                false,
-                                false
-                            );
-                        }
+                    // 🆕 استفاده از منطق جدید: عضو تیم برنده بودن
+                    $isGameWinner = $game->isGameWinner($participant);
 
-                        $scoringService->updateUserXP($participant->user_id, $xp);
-
-                        log_message("✅ User {$participant->user_id} earned {$xp} XP (winner: " . ($isGameWinner ? 'yes' : 'no') . ")");
+                    if ($isGameWinner) {
+                        $xp = $scoringService->calculateWinnerXP((float) $participant->total_score);
+                        log_message("🏆 User {$participant->user_id} earned {$xp} XP as WINNER");
+                    } else {
+                        $xp = $scoringService->calculatePlayerXP(
+                            (float) $participant->total_score,
+                            false,
+                            false
+                        );
+                        log_message("📊 User {$participant->user_id} earned {$xp} XP as participant");
                     }
+
+                    $scoringService->updateUserXP($participant->user_id, $xp);
                 }
 
+                // 🆕 به‌روزرسانی کش leaderboard برای همه شرکت‌کنندگان
                 $statsService = new \Application\Services\UserStatsService();
-                if ($winner->user_id) {
-                    $statsService->refreshLeaderboardCache($winner->user_id);
-                }
-
                 foreach ($game->participants as $participant) {
                     if ($participant->user_id) {
                         $statsService->refreshLeaderboardCache($participant->user_id);
                     }
                 }
 
-                $this->participantRepo->setWinner($winner->id);
+                // 🆕 ساخت نام برنده برای نمایش
+                $winnerName = '';
+                $winnerUserId = null;
+                $winnerMembersData = [];
 
-                $winnerName = $winner->getDisplayName();
-                if ($game->isTeamMode() && $winner->team_id) {
-                    foreach ($game->teams as $team) {
-                        if ($team->id === $winner->team_id) {
-                            $winnerName = 'تیم ' . $team->name;
-                            break;
-                        }
+                if ($isTeamMode && $winningTeam) {
+                    $winnerName = 'تیم ' . $winningTeam->name;
+                    $winnerUserId = null;
+
+                    // ساخت لیست اعضای برنده برای broadcast
+                    foreach ($winningMembers as $member) {
+                        $winnerMembersData[] = [
+                            'id' => $member->user_id ?? $member->id,
+                            'name' => $member->getDisplayName(),
+                            'participant_id' => $member->id,
+                            'user_id' => $member->user_id,
+                        ];
                     }
+                } else {
+                    $winnerName = $soloWinner->getDisplayName();
+                    $winnerUserId = $soloWinner->user_id ?? $soloWinner->id;
+                    $winnerMembersData = null;
                 }
 
+                // 🆕 Dispatch رویداد با اطلاعات کامل
                 $this->events->dispatch('game_finished', [
                     'game_id' => $gameId,
-                    'winner_id' => $winner->user_id ?? $winner->id,
+                    'winner_id' => $winnerUserId,
+                    'winner_team_id' => $winnerTeamId,
                     'winner_name' => $winnerName,
+                    'winner_members' => $winnerMembersData,
                     'total_rounds' => $game->total_rounds_played,
                 ]);
 
-                // src/Application/Services/GameService.php
-                // در متد finishGame، بعد از ساخت $broadcastData:
-
+                // 🆕 آماده‌سازی داده‌های broadcast
                 $broadcastData = [
                     'game_id' => $gameId,
                     'status' => Game::STATUS_FINISHED,
+                    'is_team_mode' => $isTeamMode,
                     'winner' => [
-                        'id' => $winner->user_id ?? $winner->id,
+                        'id' => $winnerUserId,
                         'name' => $winnerName,
-                        'participant_id' => $winner->id,
+                        'participant_id' => $isTeamMode ? null : $soloWinner->id,
+                        'team_id' => $winnerTeamId,
+                        'members' => $winnerMembersData,
                     ],
                     'total_rounds' => $game->total_rounds_played,
                     'finished_at' => date('Y-m-d H:i:s'),
-                    'source_user_id' => $refereeId, // 🆕 اضافه شد
+                    'source_user_id' => $refereeId,
                 ];
 
                 return [
                     'success' => true,
                     'message' => 'بازی پایان یافت',
-                    'winner' => $winnerName
+                    'winner' => $winnerName,
+                    'is_team_victory' => $isTeamMode,
+                    'winners_count' => count($winningMembers),
                 ];
             });
 
+            // 🆕 Broadcast خارج از transaction
             if ($result['success'] && $broadcastData) {
                 try {
                     $this->broadcastGameFinished($gameId, $broadcastData);
@@ -875,7 +923,6 @@ class GameService
             return ['success' => false, 'error' => 'خطا در پایان بازی: ' . $e->getMessage()];
         }
     }
-
 
 
     /**
@@ -1220,25 +1267,38 @@ class GameService
         // در حال حاضر کش نداریم، اما برای آینده آماده است
         log_message("🗑️ Game cache cleared for game #{$gameId}");
     }
+
     /**
-     * 🆕 گرفتن بازی‌های اخیر کاربر با نقش‌های مختلف
+     * 🆕 گرفتن بازی‌های اخیر کاربر با نقش‌های مختلف - اصلاح شده برای تیمی
      */
     public function getRecentGamesWithRole(int $userId, int $limit = 10): array
     {
         $games = $this->db->fetchAll(
             "SELECT g.*,
-        (SELECT COUNT(*) FROM game_participants gp WHERE gp.game_id = g.id) as total_players,
-        (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams,
-        (SELECT gp2.wins_count FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as wins_count,
-        (SELECT gp2.total_score FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as total_score,
-        (SELECT gp2.id FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as participant_id,
-        (g.referee_id = ?) as is_referee,
-        (SELECT COUNT(*) FROM game_participants gp3 WHERE gp3.game_id = g.id AND gp3.user_id = ?) as is_player_count
+            (SELECT COUNT(*) FROM game_participants gp WHERE gp.game_id = g.id) as total_players,
+            (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams,
+            (SELECT gp2.wins_count FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as wins_count,
+            (SELECT gp2.total_score FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as total_score,
+            (SELECT gp2.id FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as participant_id,
+            (SELECT gp2.team_id FROM game_participants gp2 WHERE gp2.game_id = g.id AND gp2.user_id = ? LIMIT 1) as user_team_id,
+            (g.referee_id = ?) as is_referee,
+            (SELECT COUNT(*) FROM game_participants gp3 WHERE gp3.game_id = g.id AND gp3.user_id = ?) as is_player_count,
+            -- 🆕 محاسبه صحیح برنده با پشتیبانی از تیمی
+            (SELECT 
+                CASE 
+                    WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp4.id THEN 1
+                    WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                         AND g.winner_team_id = gp4.team_id THEN 1
+                    ELSE 0
+                END
+             FROM game_participants gp4 
+             WHERE gp4.game_id = g.id AND gp4.user_id = ? 
+             LIMIT 1) as is_winner
         FROM games g
         WHERE (g.referee_id = ? OR EXISTS (SELECT 1 FROM game_participants gp4 WHERE gp4.game_id = g.id AND gp4.user_id = ?))
         ORDER BY g.created_at DESC
         LIMIT ?",
-            [$userId, $userId, $userId, $userId, $userId, $userId, $userId, $limit]
+            [$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $limit]
         );
 
         // محاسبه نقش کاربر در هر بازی
@@ -1255,6 +1315,9 @@ class GameService
             } else {
                 $game['user_role'] = 'none';
             }
+
+            // تبدیل is_winner به boolean
+            $game['is_winner'] = (bool) $game['is_winner'];
         }
 
         return $games;

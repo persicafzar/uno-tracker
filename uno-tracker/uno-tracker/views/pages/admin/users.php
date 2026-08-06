@@ -26,6 +26,15 @@ $roleLabels = [
             </h2>
             <p class="text-gray-600 text-sm font-medium mt-0.5">مجموع: <strong class="text-indigo-600"><?= number_format($total) ?></strong> کاربر</p>
         </div>
+
+        <!-- 🆕 دکمه باز محاسبه آمار همه -->
+        <?php if ($admin['role'] === 'super_admin'): ?>
+            <button type="button" onclick="confirmRecalculateAll()"
+                class="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
+                <span>🔄</span>
+                <span>باز محاسبه آمار همه کاربران</span>
+            </button>
+        <?php endif; ?>
     </div>
 
     <!-- Filters -->
@@ -335,5 +344,139 @@ $roleLabels = [
                 document.getElementById(formId).submit();
             }
         });
+    }
+</script>
+
+<script>
+    function confirmDelete(message, formId) {
+        Swal.fire({
+            title: 'حذف کاربر',
+            text: message,
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '🗑️ بله، حذف کن',
+            cancelButtonText: 'انصراف',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(formId).submit();
+            }
+        });
+    }
+
+    // 🆕 تایید باز محاسبه آمار همه کاربران
+    function confirmRecalculateAll() {
+        Swal.fire({
+            title: '🔄 باز محاسبه آمار همه کاربران',
+            html: `
+                <div class="text-right">
+                    <p class="text-gray-700 mb-3">
+                        آیا از باز محاسبه آمار <strong>تمام کاربران</strong> اطمینان دارید؟
+                    </p>
+                    <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3">
+                        <p class="text-orange-800 text-sm">
+                            ⚠️ این عملیات ممکن است <strong>چند دقیقه</strong> طول بکشد.
+                        </p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                        <p class="text-blue-800 text-xs">
+                            📊 آمار بازی‌ها، XP، سطح، مدال‌ها و القاب همه کاربران از صفر محاسبه خواهد شد.
+                        </p>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ea580c',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '🔄 بله، شروع کن',
+            cancelButtonText: 'انصراف',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-2xl'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                executeRecalculateAll();
+            }
+        });
+    }
+
+    // 🆕 اجرای باز محاسبه با نمایش loading
+    function executeRecalculateAll() {
+        Swal.fire({
+            title: '🔄 در حال پردازش...',
+            html: `
+                <div class="text-center">
+                    <div class="mb-4">
+                        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+                    </div>
+                    <p class="text-gray-700">لطفاً صبر کنید...</p>
+                    <p class="text-gray-500 text-sm mt-2">این عملیات ممکن است چند دقیقه طول بکشد</p>
+                </div>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+        });
+
+        // ارسال درخواست به سرور
+        fetch('/admin/users/recalculate-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: 'batch_size=50'
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '✅ عملیات با موفقیت انجام شد',
+                        html: `
+                        <div class="text-right">
+                            <p class="text-gray-700 mb-2">${data.message}</p>
+                            <div class="bg-green-50 border border-green-200 rounded-xl p-3 mt-3">
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div><strong>کل کاربران:</strong> ${data.stats.total}</div>
+                                    <div><strong>موفق:</strong> ${data.stats.success}</div>
+                                    <div><strong>ناموفق:</strong> ${data.stats.failed}</div>
+                                    <div><strong>مدت زمان:</strong> ${data.stats.duration} ثانیه</div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
+                        confirmButtonColor: '#16a34a',
+                        confirmButtonText: 'بستن',
+                        timer: 8000,
+                        timerProgressBar: true,
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '❌ خطا در انجام عملیات',
+                        text: data.error || 'خطای ناشناخته',
+                        confirmButtonColor: '#dc2626',
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: '❌ خطای ارتباط با سرور',
+                    text: 'لطفاً دوباره تلاش کنید',
+                    confirmButtonColor: '#dc2626',
+                });
+                console.error('Recalculate error:', error);
+            });
     }
 </script>

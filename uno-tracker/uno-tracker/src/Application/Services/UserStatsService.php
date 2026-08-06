@@ -14,20 +14,25 @@ class UserStatsService
     }
 
     /**
-     * گرفتن آمار کامل کاربر
+     * گرفتن آمار کامل کاربر - 🆕 با پشتیبانی از تیمی
      */
     public function getUserStats(int $userId): array
     {
         $stats = $this->db->fetchOne(
             "SELECT 
-                COUNT(DISTINCT g.id) as total_games,
-                SUM(CASE WHEN gp.is_winner = 1 THEN 1 ELSE 0 END) as total_wins,
-                CAST(COALESCE(SUM(gp.total_score), 0) AS DECIMAL(10, 2)) as total_points
-             FROM games g
-             INNER JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.status = 'finished'
-             AND gp.user_id IS NOT NULL",
+            COUNT(DISTINCT g.id) as total_games,
+            SUM(CASE 
+                WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0 
+            END) as total_wins,
+            CAST(COALESCE(SUM(gp.total_score), 0) AS DECIMAL(10, 2)) as total_points
+         FROM games g
+         INNER JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'finished'
+         AND gp.user_id IS NOT NULL",
             [$userId]
         );
 
@@ -54,7 +59,7 @@ class UserStatsService
     }
 
     /**
-     * 🆕 گرفتن آمار تفصیلی
+     * 🆕 گرفتن آمار تفصیلی - اصلاح شده برای تیمی
      */
     public function getDetailedStats(int $userId): array
     {
@@ -63,28 +68,29 @@ class UserStatsService
         // آمار بر اساس وضعیت بازی
         $statusStats = $this->db->fetchOne(
             "SELECT 
-                COUNT(DISTINCT CASE WHEN g.status = 'active' THEN g.id END) as active_games,
-                COUNT(DISTINCT CASE WHEN g.status = 'pending' THEN g.id END) as pending_games,
-                COUNT(DISTINCT CASE WHEN g.status = 'paused' THEN g.id END) as paused_games,
-                COUNT(DISTINCT CASE WHEN g.status = 'cancelled' THEN g.id END) as cancelled_games
-             FROM games g
-             INNER JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? AND gp.user_id IS NOT NULL",
+            COUNT(DISTINCT CASE WHEN g.status = 'active' THEN g.id END) as active_games,
+            COUNT(DISTINCT CASE WHEN g.status = 'pending' THEN g.id END) as pending_games,
+            COUNT(DISTINCT CASE WHEN g.status = 'paused' THEN g.id END) as paused_games,
+            COUNT(DISTINCT CASE WHEN g.status = 'cancelled' THEN g.id END) as cancelled_games
+         FROM games g
+         INNER JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? AND gp.user_id IS NOT NULL",
             [$userId]
         );
 
-        // آمار بر اساس حالت بازی
+        // 🆕 آمار بر اساس حالت بازی - اصلاح شده
         $modeStats = $this->db->fetchOne(
             "SELECT 
-                COUNT(DISTINCT CASE WHEN g.game_mode = 'solo' THEN g.id END) as solo_games,
-                COUNT(DISTINCT CASE WHEN g.game_mode = 'friendly' THEN g.id END) as team_games,
-                SUM(CASE WHEN g.game_mode = 'solo' AND gp.is_winner = 1 THEN 1 ELSE 0 END) as solo_wins,
-                SUM(CASE WHEN g.game_mode = 'friendly' AND gp.is_winner = 1 THEN 1 ELSE 0 END) as team_wins
-             FROM games g
-             INNER JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.status = 'finished'
-             AND gp.user_id IS NOT NULL",
+            COUNT(DISTINCT CASE WHEN g.game_mode = 'solo' THEN g.id END) as solo_games,
+            COUNT(DISTINCT CASE WHEN g.game_mode = 'friendly' THEN g.id END) as team_games,
+            SUM(CASE WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as solo_wins,
+            SUM(CASE WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1 ELSE 0 END) as team_wins
+         FROM games g
+         INNER JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'finished'
+         AND gp.user_id IS NOT NULL",
             [$userId]
         );
 
@@ -146,22 +152,27 @@ class UserStatsService
     }
 
     /**
-     * 🆕 گرفتن آمار بر اساس حالت بازی (برای نمودار)
+     * 🆕 گرفتن آمار بر اساس حالت بازی (برای نمودار) - اصلاح شده
      */
     public function getStatsByMode(int $userId): array
     {
         $stats = $this->db->fetchAll(
             "SELECT 
-                g.game_mode,
-                COUNT(DISTINCT g.id) as total_games,
-                SUM(CASE WHEN gp.is_winner = 1 THEN 1 ELSE 0 END) as total_wins,
-                CAST(COALESCE(SUM(gp.total_score), 0) AS DECIMAL(10, 2)) as total_points
-             FROM games g
-             INNER JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ? 
-             AND g.status = 'finished'
-             AND gp.user_id IS NOT NULL
-             GROUP BY g.game_mode",
+            g.game_mode,
+            COUNT(DISTINCT g.id) as total_games,
+            SUM(CASE 
+                WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0 
+            END) as total_wins,
+            CAST(COALESCE(SUM(gp.total_score), 0) AS DECIMAL(10, 2)) as total_points
+         FROM games g
+         INNER JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'finished'
+         AND gp.user_id IS NOT NULL
+         GROUP BY g.game_mode",
             [$userId]
         );
 

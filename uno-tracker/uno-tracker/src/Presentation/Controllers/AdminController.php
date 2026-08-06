@@ -1127,6 +1127,84 @@ class AdminController
         $this->response->html($html);
     }
 
+    /**
+     * 🆕 باز محاسبه آمار همه کاربران (AJAX endpoint)
+     * قابل اجرا از طریق وب (هاست اشتراکی) و CLI
+     */
+    public function recalculateAllUsersBatch(Request $request): void
+    {
+        // فقط super_admin اجازه دارد
+        if (!$this->auth->isSuperAdmin()) {
+            $this->response->json([
+                'success' => false,
+                'error' => 'فقط مدیر ارشد می‌تواند این عملیات را انجام دهد'
+            ]);
+            return;
+        }
+
+        $startTime = microtime(true);
+        $batchSize = (int) $request->post('batch_size', 50);
+
+        $db = \Core\Database::getInstance();
+        $recalcService = new \Application\Services\RecalculateUserService();
+
+        // گرفتن همه کاربران فعال
+        $users = $db->fetchAll(
+            "SELECT id, nickname FROM users WHERE status != 'banned' ORDER BY id ASC"
+        );
+
+        $totalUsers = count($users);
+        $successCount = 0;
+        $failCount = 0;
+        $failedUsers = [];
+
+        foreach ($users as $user) {
+            try {
+                $recalcService->recalculateAll((int)$user['id']);
+                $successCount++;
+            } catch (\Throwable $e) {
+                $failCount++;
+                $failedUsers[] = $user['nickname'] . ' (ID: ' . $user['id'] . ')';
+                error_log("Recalculate error for user {$user['id']}: " . $e->getMessage());
+            }
+
+            // استراحت بین batch ها
+            if ($batchSize > 0 && $successCount % $batchSize === 0) {
+                usleep(500000); // 0.5 ثانیه
+            }
+        }
+
+        $duration = round(microtime(true) - $startTime, 2);
+
+        // ثبت لاگ
+        $admin = $this->auth->user();
+        $this->adminRepo->createLog([
+            'admin_id' => $admin['id'],
+            'action_type' => 'user_bulk_recalculate',
+            'target_type' => 'user',
+            'description' => "باز محاسبه گروهی آمار: {$successCount} موفق، {$failCount} ناموفق از {$totalUsers} کاربر ({$duration} ثانیه)",
+            'new_data' => [
+                'total' => $totalUsers,
+                'success' => $successCount,
+                'failed' => $failCount,
+                'failed_users' => $failedUsers,
+                'duration' => $duration,
+            ],
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        ]);
+
+        $this->response->json([
+            'success' => true,
+            'message' => "باز محاسبه آمار {$totalUsers} کاربر انجام شد",
+            'stats' => [
+                'total' => $totalUsers,
+                'success' => $successCount,
+                'failed' => $failCount,
+                'duration' => $duration,
+            ]
+        ]);
+    }
     // در فایل src/Presentation/Controllers/AdminController.php
 
     public function recalculateUserStats(Request $request, array $params): void

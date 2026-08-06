@@ -455,59 +455,75 @@ class GamificationRepository
     // ============================================
 
     /**
-     * گرفتن آمار کلی کاربر
+     * گرفتن آمار کلی کاربر - 🆕 با پشتیبانی کامل از برد تیمی
      */
     public function getUserStats(int $userId): array
     {
         // کل بازی‌ها
         $totalGames = $this->db->fetchOne(
             "SELECT COUNT(DISTINCT g.id) as count 
-             FROM games g 
-             JOIN game_participants gp ON g.id = gp.game_id 
-             WHERE gp.user_id = ? AND g.status = 'finished'",
+         FROM games g 
+         JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.status = 'finished'",
             [$userId]
         );
 
-        // کل بردها
+        // 🆕 کل بردها (شامل Solo و Team)
         $totalWins = $this->db->fetchOne(
             "SELECT COUNT(DISTINCT g.id) as count 
-             FROM games g 
-             JOIN game_participants gp ON g.id = gp.game_id 
-             WHERE gp.user_id = ? 
-             AND g.status = 'finished'
-             AND g.winner_participant_id = gp.id",
+         FROM games g 
+         JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? 
+         AND g.status = 'finished'
+         AND (
+             (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
+             OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id)
+         )",
             [$userId]
         );
 
         // امتیاز کل
         $totalPoints = $this->db->fetchOne(
             "SELECT COALESCE(SUM(gp.total_score), 0) as total 
-             FROM game_participants gp 
-             JOIN games g ON gp.game_id = g.id 
-             WHERE gp.user_id = ? AND g.status = 'finished'",
+         FROM game_participants gp 
+         JOIN games g ON gp.game_id = g.id 
+         WHERE gp.user_id = ? AND g.status = 'finished'",
             [$userId]
         );
 
         // بازی‌های تیمی
         $teamGames = $this->db->fetchOne(
             "SELECT COUNT(DISTINCT g.id) as count 
-             FROM games g 
-             JOIN game_participants gp ON g.id = gp.game_id 
-             WHERE gp.user_id = ? 
-             AND g.game_mode = 'friendly'
-             AND g.status = 'finished'",
+         FROM games g 
+         JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? 
+         AND g.game_mode = 'friendly'
+         AND g.status = 'finished'",
             [$userId]
         );
 
-        // بردهای تیمی
+        // 🆕 بردهای تیمی - اصلاح شده
         $teamWins = $this->db->fetchOne(
             "SELECT COUNT(DISTINCT g.id) as count 
-             FROM games g 
-             JOIN game_participants gp ON g.id = gp.game_id 
-             WHERE gp.user_id = ? 
-             AND g.game_mode = 'friendly'
-             AND g.status = 'finished'
-             AND g.winner_participant_id = gp.id",
+         FROM games g 
+         JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? 
+         AND g.game_mode = 'friendly'
+         AND g.status = 'finished'
+         AND g.winner_team_id IS NOT NULL
+         AND g.winner_team_id = gp.team_id",
+            [$userId]
+        );
+
+        // 🆕 بردهای انفرادی
+        $soloWins = $this->db->fetchOne(
+            "SELECT COUNT(DISTINCT g.id) as count 
+         FROM games g 
+         JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? 
+         AND g.game_mode = 'solo'
+         AND g.status = 'finished'
+         AND g.winner_participant_id = gp.id",
             [$userId]
         );
 
@@ -517,6 +533,7 @@ class GamificationRepository
             'total_points' => (int)($totalPoints['total'] ?? 0),
             'team_games' => (int)($teamGames['count'] ?? 0),
             'team_wins' => (int)($teamWins['count'] ?? 0),
+            'solo_wins' => (int)($soloWins['count'] ?? 0),
         ];
     }
         // ============================================

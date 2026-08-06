@@ -544,6 +544,12 @@ $router->get('/admin/users/{id}', 'Presentation\Controllers\AdminController@user
     \Presentation\Middleware\AdminMiddleware::class,
 ]);
 
+// 🆕 باز محاسبه گروهی آمار همه کاربران (AJAX)
+$router->post('/admin/users/recalculate-all', 'Presentation\Controllers\AdminController@recalculateAllUsersBatch', [
+    \Presentation\Middleware\AuthMiddleware::class,
+    \Presentation\Middleware\AdminMiddleware::class,
+]);
+
 $router->get('/admin/games/{id}', 'Presentation\Controllers\AdminController@gameDetail', [
     \Presentation\Middleware\AuthMiddleware::class,
     \Presentation\Middleware\AdminMiddleware::class,
@@ -655,6 +661,7 @@ $router->get('/admin/anti-cheat', 'Presentation\Controllers\AdminController@susp
     \Presentation\Middleware\AuthMiddleware::class,
     \Presentation\Middleware\AdminMiddleware::class,
 ]);
+
 
 // ============================================
 // Routeهای SSE (Real-time)

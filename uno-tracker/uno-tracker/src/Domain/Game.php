@@ -26,7 +26,7 @@ class Game
     public ?string $started_at = null;
     public ?string $finished_at = null;
     public string $created_at;
-    
+
     public array $participants = [];
     public array $rounds = [];
     public array $teams = [];
@@ -106,20 +106,19 @@ class Game
 
     /**
      * 🆕 اصلاح شده: پیدا کردن برنده در بازی تیمی و انفرادی
+     * 
+     * در حالت Solo: participant برنده را برمی‌گرداند
+     * در حالت Team: اولین عضو تیم برنده را برمی‌گرداند (برای backward compatibility)
      */
     public function getWinner(): ?GameParticipant
     {
         if ($this->isTeamMode()) {
-            // 🆕 در بازی تیمی، تیمی که مجموع بردهایش به هدف رسیده برنده است
-            foreach ($this->teams as $team) {
-                $teamTotalWins = $team->getTotalWins();
-                if ($teamTotalWins >= $this->target_wins) {
-                    // اولین عضو تیم را به عنوان برنده برگردان
-                    $members = $team->getMembers();
-                    return $members[0] ?? null;
-                }
-            }
-            return null;
+            $winningTeam = $this->getWinningTeam();
+            if (!$winningTeam) return null;
+
+            // برای backward compatibility، اولین عضو تیم برنده را برگردان
+            $members = $winningTeam->getMembers();
+            return $members[0] ?? null;
         } else {
             // در بازی انفرادی
             foreach ($this->participants as $participant) {
@@ -129,6 +128,73 @@ class Game
             }
             return null;
         }
+    }
+
+    /**
+     * 🆕 جدید: گرفتن تیم برنده در حالت تیمی
+     */
+    public function getWinningTeam(): ?Team
+    {
+        if (!$this->isTeamMode()) {
+            return null;
+        }
+
+        foreach ($this->teams as $team) {
+            $teamTotalWins = $team->getTotalWins();
+            if ($teamTotalWins >= $this->target_wins) {
+                return $team;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 جدید: گرفتن همه اعضای تیم برنده
+     * 
+     * @return GameParticipant[]
+     */
+    public function getWinningTeamMembers(): array
+    {
+        $winningTeam = $this->getWinningTeam();
+        if (!$winningTeam) {
+            return [];
+        }
+
+        return $winningTeam->getMembers();
+    }
+
+    /**
+     * 🆕 جدید: بررسی اینکه آیا یک participant عضو تیم برنده است
+     */
+    public function isTeamWinner(GameParticipant $participant): bool
+    {
+        if (!$this->isTeamMode()) {
+            return false;
+        }
+
+        $winningTeam = $this->getWinningTeam();
+        if (!$winningTeam || !$participant->team_id) {
+            return false;
+        }
+
+        return $participant->team_id === $winningTeam->id;
+    }
+
+    /**
+     * 🆕 جدید: بررسی اینکه آیا یک participant برنده بازی است
+     * 
+     * در Solo: تطابق با winner
+     * در Team: عضو تیم برنده بودن
+     */
+    public function isGameWinner(GameParticipant $participant): bool
+    {
+        if ($this->isTeamMode()) {
+            return $this->isTeamWinner($participant);
+        }
+
+        $winner = $this->getWinner();
+        return $winner && $winner->id === $participant->id;
     }
 
     public function addTeam(Team $team): void

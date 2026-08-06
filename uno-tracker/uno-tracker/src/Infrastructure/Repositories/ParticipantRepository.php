@@ -88,11 +88,49 @@ class ParticipantRepository
         );
     }
 
+    /**
+     * علامت‌گذاری یک participant به عنوان برنده (Solo mode)
+     */
     public function setWinner(int $id): void
     {
         $this->db->update('game_participants', ['is_winner' => 1], 'id = ?', [$id]);
     }
+    /**
+     * 🆕 جدید: علامت‌گذاری همه اعضای یک تیم به عنوان برنده (Team mode)
+     * 
+     * @param int $gameId شناسه بازی
+     * @param int $teamId شناسه تیم برنده
+     * @return int تعداد رکوردهای به‌روز شده
+     */
+    public function setTeamWinners(int $gameId, int $teamId): int
+    {
+        return $this->db->execute(
+            "UPDATE game_participants 
+         SET is_winner = 1 
+         WHERE game_id = ? AND team_id = ?",
+            [$gameId, $teamId]
+        );
+    }
 
+    /**
+     * 🆕 جدید: گرفتن همه اعضای یک تیم
+     * 
+     * @return GameParticipant[]
+     */
+    public function findByTeam(int $gameId, int $teamId): array
+    {
+        $results = $this->db->fetchAll(
+            "SELECT gp.*, u.nickname, u.real_name, u.avatar_path, t.name as team_name
+         FROM game_participants gp
+         LEFT JOIN users u ON gp.user_id = u.id
+         LEFT JOIN teams t ON gp.team_id = t.id
+         WHERE gp.game_id = ? AND gp.team_id = ?
+         ORDER BY gp.joined_at",
+            [$gameId, $teamId]
+        );
+
+        return array_map(fn($data) => GameParticipant::fromArray($data), $results);
+    }
     /**
      * بررسی اینکه آیا کاربر در بازی فعال است
      */
