@@ -179,11 +179,8 @@ class GameController
             'game' => $game,
             'isReferee' => $isReferee,
             'isAdmin' => $isAdmin,
-            'currentPath' => '/game/' . $gameId,
             'currentUser' => $currentUser,
-            'user' => $currentUser, // alias
             'maxWins' => $maxWinsValue,
-            'canCreate' => $currentUser['can_create_game'] ?? 0,
             'scoringSettings' => $scoringSettings, // 🆕 اضافه شده
         ], $layout);
 
