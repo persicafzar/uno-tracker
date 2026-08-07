@@ -429,56 +429,68 @@ function showCustomNotification(eventType, data, userRole) {
 
   if (!title || typeof Swal === "undefined") return;
 
-  if (Swal.isVisible()) {
+  // 🎯 بستن Swal های قبلی (خیلی مهم!)
+  if (typeof Swal !== "undefined" && Swal.isVisible()) {
     Swal.close();
+  }
+
+  // 🎯 Cleanup قبل از نمایش جدید
+  if (typeof cleanupSwalContainers === "function") {
+    cleanupSwalContainers();
   }
 
   const customClass = getNotificationClass(userRole);
   const isGameWinner = userRole === "game_winner";
   const timerDuration = getTimerDuration(userRole);
 
-  const swalConfig = {
-    toast: !isGameWinner,
-    position: isGameWinner ? "center" : "top-end",
-    title: title,
-    showConfirmButton: isGameWinner,
-    confirmButtonText: isGameWinner ? "🎉 عالی!" : undefined,
-    confirmButtonColor: "#f59e0b",
-    showCloseButton: !isGameWinner,
-    timer: isGameWinner ? 5000 : timerDuration,
-    timerProgressBar: !isGameWinner,
-    customClass: {
-      popup: `notification-custom ${customClass}`,
-    },
-  };
+  // 🎯 استفاده از smartSwal یا showToast
+  if (typeof showToast === "function" && !isGameWinner) {
+    // 🎯 Toast ساده با cleanup خودکار
+    const iconMap = {
+      game_winner: "success",
+      game_loser: "error",
+      round_winner: "success",
+      round_loser: "error",
+      participant: "info",
+      spectator: "info",
+      neutral: "info",
+    };
 
-  Swal.fire(swalConfig).then((result) => {
-    if (result.isConfirmed) {
-      console.log('✅ User clicked "عالی!"');
-    } else if (result.dismiss === Swal.DismissReason.timer) {
-      console.log("⏰ Auto-closed by timer");
-    } else if (result.dismiss === Swal.DismissReason.close) {
-      console.log("❌ User clicked close");
-    } else if (result.dismiss === Swal.DismissReason.esc) {
-      console.log("⌨️ User pressed Escape");
-    }
-  });
-}
+    showToast(title, iconMap[userRole] || "info", timerDuration);
+    return;
+  }
 
-/**
- * ⏱️ مدت زمان نمایش
- */
-function getTimerDuration(userRole) {
-  const durationMap = {
-    game_winner: 5000,
-    game_loser: 4000,
-    round_winner: 3500,
-    round_loser: 3500,
-    participant: 3000,
-    spectator: 2500,
-    neutral: 2500,
-  };
-  return durationMap[userRole] || 2500;
+  // 🎯 Fallback به Swal معمولی (برای game_winner که وسط صفحه است)
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      toast: !isGameWinner,
+      position: isGameWinner ? "center" : "top-end",
+      title: title,
+      showConfirmButton: isGameWinner,
+      confirmButtonText: isGameWinner ? "🎉 عالی!" : undefined,
+      confirmButtonColor: "#f59e0b",
+      showCloseButton: !isGameWinner,
+      timer: isGameWinner ? 5000 : timerDuration,
+      timerProgressBar: !isGameWinner,
+      // 🎯 مهم: backdrop را برای toast حذف کن
+      backdrop: isGameWinner ? true : false,
+      grow: !isGameWinner ? "column" : false,
+      customClass: {
+        popup: `notification-custom ${customClass}`,
+        container: isGameWinner
+          ? "swal2-center-container"
+          : "swal2-toast-container",
+      },
+      didClose: function () {
+        // 🎯 Cleanup بعد از بسته شدن
+        setTimeout(() => {
+          if (typeof cleanupSwalContainers === "function") {
+            cleanupSwalContainers();
+          }
+        }, 100);
+      },
+    });
+  }
 }
 
 /**

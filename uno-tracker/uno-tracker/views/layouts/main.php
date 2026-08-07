@@ -148,6 +148,180 @@
                 -webkit-overflow-scrolling: touch;
             }
         }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🎯 FIX 1: SweetAlert2 Toast Container نباید جلوی کلیک را بگیرد */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        /* container اصلی Swal در حالت toast باید pointer-events نداشته باشد */
+        .swal2-container.swal2-top-end,
+        .swal2-container.swal2-top-start,
+        .swal2-container.swal2-bottom-end,
+        .swal2-container.swal2-bottom-start,
+        .swal2-container.swal2-top,
+        .swal2-container.swal2-bottom {
+            pointer-events: none !important;
+            width: auto !important;
+            max-width: 420px !important;
+            /* 🎯 مهم: container باید فقط به اندازه popup باشد، نه کل صفحه */
+            height: auto !important;
+            inset: auto !important;
+            padding: 1rem !important;
+        }
+
+        /* 🎯 موقعیت دقیق toast در گوشه بالا-چپ (RTL: بالا-چپ) */
+        .swal2-container.swal2-top-end {
+            top: 1rem !important;
+            left: 1rem !important;
+            right: auto !important;
+            bottom: auto !important;
+        }
+
+        /* 🎯 Popup داخلی Swal باید clickable باشد */
+        .swal2-container .swal2-popup,
+        .swal2-container .swal2-popup * {
+            pointer-events: auto !important;
+        }
+
+        /* 🎯 وقتی backdrop مخفی است، container نباید روی صفحه پخش شود */
+        .swal2-container.swal2-backdrop-hide {
+            background: transparent !important;
+            pointer-events: none !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🎯 FIX 2: Drawer باید بالاتر از همه چیز باشد */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        #global-profile-drawer {
+            z-index: 999999 !important;
+            position: fixed !important;
+            inset: 0 !important;
+        }
+
+        #global-drawer-backdrop {
+            z-index: 999998 !important;
+            position: fixed !important;
+            inset: 0 !important;
+            pointer-events: auto !important;
+        }
+
+        #global-drawer-panel {
+            z-index: 1000000 !important;
+            position: fixed !important;
+            pointer-events: auto !important;
+        }
+
+        /* 🎯 همه عناصر داخل drawer باید clickable باشند */
+        #global-drawer-panel *,
+        #global-drawer-panel button,
+        #global-drawer-panel a {
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+        }
+
+        /* 🎯 دکمه Close drawer باید همیشه روی همه چیز باشد */
+        #global-drawer-panel>div:first-child {
+            z-index: 1000001 !important;
+            position: sticky !important;
+            top: 0 !important;
+        }
+
+        #global-drawer-panel button[aria-label="بستن"] {
+            z-index: 1000002 !important;
+            position: relative !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent !important;
+            cursor: pointer !important;
+            min-width: 48px !important;
+            min-height: 48px !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🎯 FIX 3: دکمه همبرگری باید همیشه قابل کلیک باشد */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        nav.z-50,
+        nav.fixed {
+            z-index: 9999 !important;
+            position: fixed !important;
+            pointer-events: auto !important;
+        }
+
+        /* 🎯 دکمه همبرگری باید روی همه چیز باشد */
+        nav button[aria-label*="منو"],
+        nav button[aria-label*="menu"],
+        nav .md\:hidden {
+            z-index: 10000 !important;
+            position: relative !important;
+            pointer-events: auto !important;
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: transparent !important;
+            cursor: pointer !important;
+        }
+
+        /* 🎯 وقتی drawer باز است، nav باید پایین‌تر باشد اما دکمه همبرگری همچنان کار کند */
+        body.drawer-open nav {
+            z-index: 999997 !important;
+        }
+
+        body.drawer-open nav button[aria-label*="منو"],
+        body.drawer-open nav button[aria-label*="menu"] {
+            z-index: 999996 !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🎯 FIX 4: جلوگیری از overflow issues در موبایل */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        body.drawer-open {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* 🎯 Mobile menu sidebar باید زیر drawer باشد */
+        .fixed.inset-y-0.right-0.w-72 {
+            z-index: 9998 !important;
+        }
+
+        /* 🎯 Fix for small screens (< 425px) */
+        @media (max-width: 425px) {
+            .swal2-container {
+                /* max-width: calc(100vw - 2rem) !important;
+                width: calc(100vw - 2rem) !important; */
+                padding: 0.5rem !important;
+            }
+
+            .swal2-container .swal2-popup {
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+
+            nav button[aria-label*="منو"],
+            nav button[aria-label*="menu"] {
+                min-width: 52px !important;
+                min-height: 52px !important;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* 🎯 FIX 5: جلوگیری از تداخل Swal با دیگر مودال‌ها */
+        /* ═══════════════════════════════════════════════════════════ */
+
+        .swal2-container:not(.swal2-backdrop-show) {
+            background: transparent !important;
+        }
+
+        /* 🎯 وقتی Swal در حال انیمیشن خروج است، سریعاً pointer-events را حذف کن */
+        .swal2-container .swal2-popup.swal2-hide,
+        .swal2-container .swal2-popup[class*="slideOut"],
+        .swal2-container .swal2-popup[class*="fadeOut"] {
+            pointer-events: none !important;
+            transition: all 0.3s ease-out !important;
+        }
     </style>
 
     <?php
@@ -441,14 +615,39 @@
         <div id="global-drawer-panel"
             style="position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 28rem; background: white; overflow-y: auto; box-shadow: -4px 0 20px rgba(0,0,0,0.15); transform: translateX(100%); transition: transform 0.3s ease-out; border-left: 2px solid rgba(229, 231, 235, 0.5);">
 
-            <!-- Header -->
-            <div style="position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 2px solid rgba(229, 231, 235, 0.6); padding: 0.875rem 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <!-- Header با دکمه Close بهبود یافته -->
+            <div style="position: sticky; top: 0; z-index: 9999999; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 2px solid rgba(229, 231, 235, 0.6); padding: 0.875rem 1rem; display: flex; align-items: center; justify-content: space-between; pointer-events: auto;">
                 <h3 style="font-size: 1.125rem; font-weight: 900; color: #1f2937; margin: 0;">پروفایل کاربر</h3>
-                <button onclick="closeGlobalProfileDrawer()"
-                    style="min-width: 44px; min-height: 44px; padding: 0.5rem; background: transparent; border: none; border-radius: 0.75rem; cursor: pointer; color: #6b7280; display: flex; align-items: center; justify-content: center; touch-action: manipulation;"
-                    aria-label="بستن">
-                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <button
+                    id="drawer-close-btn"
+                    type="button"
+                    onclick="closeGlobalProfileDrawer(); return false;"
+                    style="
+            min-width: 52px; 
+            min-height: 52px; 
+            width: 52px;
+            height: 52px;
+            padding: 0.5rem; 
+            background: rgba(239, 68, 68, 0.1); 
+            border: 2px solid rgba(239, 68, 68, 0.3);
+            border-radius: 0.75rem; 
+            cursor: pointer; 
+            color: #dc2626; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            touch-action: manipulation;
+            pointer-events: auto !important;
+            position: relative;
+            z-index: 99999999;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+        "
+                    aria-label="بستن پروفایل"
+                    onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'"
+                    onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">
+                    <svg style="width: 28px; height: 28px; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
@@ -701,6 +900,60 @@
             });
 
             console.log('✅ Global Profile Drawer initialized');
+
+            // 🎯 افزودن event listener قوی برای دکمه Close
+            document.addEventListener('DOMContentLoaded', function() {
+                const closeBtn = document.getElementById('drawer-close-btn');
+                if (closeBtn) {
+                    // 🎯 Event listener مستقیم برای همه دستگاه‌ها
+                    closeBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('❌ Close button clicked (click event)');
+                        closeGlobalProfileDrawer();
+                        return false;
+                    });
+
+                    closeBtn.addEventListener('touchstart', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('👆 Close button touched');
+                        closeGlobalProfileDrawer();
+                        return false;
+                    }, {
+                        passive: false
+                    });
+
+                    closeBtn.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, {
+                        passive: false
+                    });
+                }
+            });
+
+            // 🎯 همچنین برای backdrop
+            document.addEventListener('DOMContentLoaded', function() {
+                const backdrop = document.getElementById('global-drawer-backdrop');
+                if (backdrop) {
+                    backdrop.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeGlobalProfileDrawer();
+                        return false;
+                    });
+
+                    backdrop.addEventListener('touchstart', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeGlobalProfileDrawer();
+                        return false;
+                    }, {
+                        passive: false
+                    });
+                }
+            });
         })();
     </script>
 
@@ -919,6 +1172,142 @@
         if (window.matchMedia('(display-mode: standalone)').matches) {
             if (installBtn) installBtn.style.display = 'none';
         }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- 🎯 ROOT FIX: SweetAlert2 Global Configuration -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // 🎯 انتظار برای بارگذاری Swal
+            function waitForSwal(callback, attempts = 0) {
+                if (typeof Swal !== 'undefined') {
+                    callback();
+                } else if (attempts < 50) {
+                    setTimeout(() => waitForSwal(callback, attempts + 1), 100);
+                }
+            }
+
+            waitForSwal(() => {
+                // 🎯 ذخیره تابع اصلی fire
+                const originalFire = Swal.fire.bind(Swal);
+
+                // 🎯 Mixin سراسری برای همه toast ها
+                const ToastMixin = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    showCloseButton: true,
+                    customClass: {
+                        container: 'swal2-toast-container',
+                        popup: 'swal2-toast-popup'
+                    },
+                    // 🎯 این گزینه‌ها باعث می‌شود container کوچک شود
+                    backdrop: false,
+                    grow: 'column',
+                    // 🎯 Cleanup قوی بعد از بسته شدن
+                    didClose: function() {
+                        // حذف دستی container از DOM
+                        setTimeout(() => {
+                            const containers = document.querySelectorAll('.swal2-container.swal2-toast-container');
+                            containers.forEach(c => {
+                                if (!c.querySelector('.swal2-popup:not(.swal2-hide)')) {
+                                    c.remove();
+                                }
+                            });
+                        }, 100);
+                    }
+                });
+
+                // 🎯 Mixin برای مودال‌های وسط صفحه (مثل برد بازی)
+                const CenterModalMixin = Swal.mixin({
+                    position: 'center',
+                    backdrop: true,
+                    allowOutsideClick: false,
+                    customClass: {
+                        container: 'swal2-center-container',
+                        popup: 'swal2-center-popup'
+                    }
+                });
+
+                // 🎯 تابع هوشمند برای تشخیص نوع
+                window.smartSwal = function(config) {
+                    const isToast = config.toast === true ||
+                        (config.position && config.position.includes('top')) ||
+                        (config.position && config.position.includes('bottom'));
+
+                    if (isToast) {
+                        return ToastMixin.fire(config);
+                    } else {
+                        return CenterModalMixin.fire(config);
+                    }
+                };
+
+                // 🎯 تابع مخصوص toast با cleanup قوی
+                window.showToast = function(title, icon = 'success', duration = 4000) {
+                    const toast = ToastMixin.fire({
+                        title: title,
+                        icon: icon,
+                        timer: duration
+                    });
+
+                    // 🎯 Cleanup بعد از بسته شدن
+                    toast.then(() => {
+                        setTimeout(() => {
+                            cleanupSwalContainers();
+                        }, 500);
+                    });
+
+                    return toast;
+                };
+
+                // 🎯 Cleanup سراسری container های قدیمی
+                window.cleanupSwalContainers = function() {
+                    const containers = document.querySelectorAll('.swal2-container');
+                    containers.forEach(container => {
+                        const popup = container.querySelector('.swal2-popup');
+
+                        // اگر popup وجود ندارد یا مخفی است، container را حذف کن
+                        if (!popup ||
+                            popup.classList.contains('swal2-hide') ||
+                            popup.style.display === 'none' ||
+                            popup.classList.toString().includes('slideOut')) {
+                            container.remove();
+                            console.log('🧹 Cleaned up stale Swal container');
+                        }
+
+                        // اگر backdrop مخفی است، container را کوچک کن
+                        if (container.classList.contains('swal2-backdrop-hide')) {
+                            container.style.pointerEvents = 'none';
+                        }
+                    });
+                };
+
+                // 🎯 Cleanup خودکار هر ۲ ثانیه
+                setInterval(cleanupSwalContainers, 2000);
+
+                // 🎯 Cleanup هنگام HTMX swap
+                document.body.addEventListener('htmx:beforeSwap', cleanupSwalContainers);
+                document.body.addEventListener('htmx:afterSwap', () => {
+                    setTimeout(cleanupSwalContainers, 300);
+                });
+
+                console.log('✅ Smart Swal initialized with cleanup system');
+            });
+
+            // 🎯 Cleanup فوری هنگام لود اولیه
+            window.addEventListener('load', () => {
+                setTimeout(cleanupSwalContainers, 1000);
+            });
+
+            // 🎯 Cleanup هنگام برگشت از history
+            window.addEventListener('popstate', cleanupSwalContainers);
+
+        })();
     </script>
 
 </body>
