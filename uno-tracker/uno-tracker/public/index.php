@@ -533,6 +533,7 @@ $router->post('/admin/games/{id}/delete', 'Presentation\Controllers\AdminControl
     \Presentation\Middleware\AdminMiddleware::class,
 ]);
 
+
 $router->post('/admin/settings', 'Presentation\Controllers\AdminController@updateSettings', [
     \Presentation\Middleware\AuthMiddleware::class,
     \Presentation\Middleware\AdminMiddleware::class,
@@ -668,6 +669,16 @@ $router->get('/admin/anti-cheat', 'Presentation\Controllers\AdminController@susp
 // ============================================
 
 $router->get('/sse/game/{id}', 'Presentation\Controllers\SSEController@game', [
+    \Presentation\Middleware\AuthMiddleware::class,
+]);
+
+// 🆕 آخرین بازی فعال
+$router->get('/game/latest-active', 'Presentation\Controllers\GameController@latestActive', [
+    \Presentation\Middleware\AuthMiddleware::class,
+]);
+
+// 🆕 آخرین بازی فعال (API برای AJAX)
+$router->get('/api/game/latest-active', 'Presentation\Controllers\GameController@latestActive', [
     \Presentation\Middleware\AuthMiddleware::class,
 ]);
 

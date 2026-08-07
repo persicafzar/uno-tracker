@@ -172,8 +172,8 @@
         /* 🎯 موقعیت دقیق toast در گوشه بالا-چپ (RTL: بالا-چپ) */
         .swal2-container.swal2-top-end {
             top: 1rem !important;
-            left: 1rem !important;
-            right: auto !important;
+            right: 1rem !important;
+            left: auto !important;
             bottom: auto !important;
         }
 
@@ -431,9 +431,60 @@
                     <a href="/dashboard" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm <?= ($currentPath ?? '') === '/dashboard' ? 'bg-indigo-50 text-indigo-600' : '' ?>">
                         <span>📊</span><span>داشبورد</span>
                     </a>
-                    <a href="/games" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm <?= ($currentPath ?? '') === '/games' ? 'bg-indigo-50 text-indigo-600' : '' ?>">
+
+                    <!-- 🆕 منوی بازی با Dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open"
+                            @click.away="open = false"
+                            @keydown.escape.window="open = false"
+                            class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm <?= in_array($currentPath ?? '', ['/games', '/game/create', '/game/latest-active']) ? 'bg-indigo-50 text-indigo-600' : '' ?>">
+                            <span>🎮</span>
+                            <span>بازی</span>
+                            <svg :class="open ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div x-show="open"
+                            x-transition:enter="transition ease-out duration-200"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-150"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            x-cloak
+                            class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border-2 border-gray-200 py-2 z-[60]">
+                            <?php if ($canCreate ?? false): ?>
+                                <a href="/game/create"
+                                    @click="open = false"
+                                    class="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
+                                    <span class="text-lg">🎮</span>
+                                    <span>بازی جدید</span>
+                                </a>
+                            <?php endif; ?>
+
+
+                            <a href="/games"
+                                @click="open = false"
+                                class="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
+                                <span class="text-lg">📋</span>
+                                <span>بازی‌ها</span>
+                            </a>
+
+                            <button onclick="handleLatestGame(event)"
+                                @click="open = false"
+                                class="w-full text-right flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
+                                <span class="text-lg">▶️</span>
+                                <span>آخرین بازی</span>
+                                <span id="latest-game-badge-desktop" class="mr-auto hidden text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-black">فعال</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- <a href="/games" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm <?= ($currentPath ?? '') === '/games' ? 'bg-indigo-50 text-indigo-600' : '' ?>">
                         <span>📋</span><span>بازی‌ها</span>
-                    </a>
+                    </a> -->
                     <a href="/users" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm <?= ($currentPath ?? '') === '/users' ? 'bg-indigo-50 text-indigo-600' : '' ?>">
                         <span>👥</span><span>بازیکنان</span>
                     </a>
@@ -441,9 +492,9 @@
                         <span class="text-lg">🏆</span><span>دستاوردها</span>
                     </a>
                     <?php if ($canCreate ?? false): ?>
-                        <a href="/game/create" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
+                        <!-- <a href="/game/create" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
                             <span>🎮</span><span>بازی جدید</span>
-                        </a>
+                        </a> -->
                     <?php endif; ?>
                     <a href="/profile" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 transition-all duration-200 font-bold text-sm">
                         <span>👤</span><span>پروفایل</span>
@@ -524,10 +575,61 @@
                 class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold touch-manipulation">
                 <span class="text-xl">📊</span><span>داشبورد</span>
             </a>
-            <a href="/games" @click="mobileMenuOpen = false"
+
+
+            <!-- 🆕 منوی بازی با Accordion -->
+            <div x-data="{ gameMenuOpen: false }" class="rounded-xl overflow-hidden">
+                <button @click="gameMenuOpen = !gameMenuOpen"
+                    class="w-full flex items-center justify-between gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold touch-manipulation <?= in_array($currentPath ?? '', ['/games', '/game/create', '/game/latest-active']) ? 'bg-indigo-50 text-indigo-600' : '' ?>">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🎮</span>
+                        <span>بازی</span>
+                    </div>
+                    <svg :class="gameMenuOpen ? 'rotate-180' : ''"
+                        class="w-5 h-5 transition-transform duration-200 flex-shrink-0"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <!-- Sub-menu با Accordion Animation -->
+                <div x-show="gameMenuOpen"
+                    x-collapse
+                    x-cloak
+                    class="overflow-hidden">
+                    <div class="pr-4 pl-2 py-2 space-y-1 border-r-4 border-indigo-200 mr-2">
+                        <?php if ($canCreate): ?>
+                            <a href="/game/create"
+                                @click="mobileMenuOpen = false"
+                                class="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all duration-200 font-bold text-sm touch-manipulation">
+                                <span class="text-base">🎮</span>
+                                <span>بازی جدید</span>
+                            </a>
+                        <?php endif; ?>
+
+                        <a href="/games"
+                            @click="mobileMenuOpen = false"
+                            class="flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all duration-200 font-bold text-sm touch-manipulation <?= ($currentPath ?? '') === '/games' ? 'bg-indigo-50 text-indigo-600' : '' ?>">
+                            <span class="text-base">📋</span>
+                            <span>بازی‌ها</span>
+                        </a>
+
+                        <button onclick="handleLatestGame(event); mobileMenuOpen = false;"
+                            class="w-full text-right flex items-center gap-3 px-3 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-all duration-200 font-bold text-sm touch-manipulation">
+                            <span class="text-base">▶️</span>
+                            <span>آخرین بازی</span>
+                            <span id="latest-game-badge-mobile" class="mr-auto hidden text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-black">فعال</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- <a href="/games" @click="mobileMenuOpen = false"
                 class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold <?= ($currentPath ?? '') === '/games' ? 'bg-indigo-50 text-indigo-600' : '' ?> touch-manipulation">
                 <span class="text-xl">📋</span><span>بازی‌ها</span>
-            </a>
+            </a> -->
             <a href="/users" @click="mobileMenuOpen = false"
                 class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold <?= ($currentPath ?? '') === '/users' ? 'bg-indigo-50 text-indigo-600' : '' ?> touch-manipulation">
                 <span class="text-xl">👥</span><span>بازیکنان</span>
@@ -537,10 +639,10 @@
                 <span class="text-xl">🏆</span><span>دستاوردها</span>
             </a>
             <?php if ($canCreate ?? false): ?>
-                <a href="/game/create" @click="mobileMenuOpen = false"
+                <!-- <a href="/game/create" @click="mobileMenuOpen = false"
                     class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold touch-manipulation">
                     <span class="text-xl">🎮</span><span>بازی جدید</span>
-                </a>
+                </a> -->
             <?php endif; ?>
             <a href="/profile" @click="mobileMenuOpen = false"
                 class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all duration-200 font-bold touch-manipulation">
@@ -702,26 +804,26 @@
             pointer-events: auto !important;
         }
     </style>
-
     <!-- ========================================== -->
-    <!-- 🎯 GLOBAL DRAWER SCRIPT (همیشه در دسترس) -->
+    <!-- 🎯 GLOBAL DRAWER SCRIPT (نسخه اصلاح شده) -->
     <!-- ========================================== -->
     <script>
         (function() {
             'use strict';
 
-            // متغیرهای سراسری
             let currentAbortController = null;
             let scrollPosition = 0;
             let isOpen = false;
+            let drawerHistoryState = null; // 🆕 ذخیره state drawer
 
             /**
-             * 🌟 باز کردن Profile Drawer - تابع سراسری
-             * از همه جا (scoreboard, rounds, ...) قابل فراخوانی است
+             * 🌟 باز کردن Profile Drawer
              */
             window.openProfile = function(url) {
                 if (isOpen) {
-                    closeGlobalProfileDrawer(false); // بدون تغییر URL
+                    // اگر قبلاً باز است، فقط محتوا را refresh کن
+                    loadProfileContent(url);
+                    return;
                 }
 
                 console.log('🎯 Opening profile drawer:', url);
@@ -746,12 +848,10 @@
                     return;
                 }
 
-                // نمایش drawer
                 drawer.style.display = 'block';
                 document.body.classList.add('drawer-open');
                 isOpen = true;
 
-                // انیمیشن باز شدن
                 requestAnimationFrame(() => {
                     panel.style.transform = 'translateX(0)';
                 });
@@ -764,53 +864,66 @@
             </div>
         `;
 
-                // اضافه کردن به History برای دکمه Back موبایل
+                // 🆕 استفاده از replaceState به جای pushState برای جلوگیری از انباشت
                 try {
-                    history.pushState({
+                    const drawerUrl = new URL(url, window.location.origin).href;
+                    drawerHistoryState = {
                         drawerOpen: true,
-                        url: url
-                    }, '', url);
+                        url: drawerUrl,
+                        originalUrl: window.location.href,
+                        timestamp: Date.now()
+                    };
+                    // 🎯 مهم: replaceState به جای pushState
+                    history.replaceState(drawerHistoryState, '', window.location.href);
                 } catch (e) {
-                    console.warn('History pushState failed:', e);
+                    console.warn('History replaceState failed:', e);
                 }
 
-                // Fetch محتوا
-                fetch(url, {
+                loadProfileContent(url);
+            };
+
+            /**
+             * 🌟 بارگذاری محتوای پروفایل
+             */
+            async function loadProfileContent(url) {
+                const content = document.getElementById('global-drawer-content');
+                if (!content) return;
+
+                try {
+                    const response = await fetch(url, {
                         cache: 'no-store',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'text/html, */*'
                         },
                         signal: currentAbortController.signal
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                        }
-                        return response.text();
-                    })
-                    .then(html => {
-                        // بررسی اینکه هنوز drawer باز است
-                        if (!isOpen) return;
+                    });
 
-                        // بررسی اینکه HTML خالی نیست
-                        if (!html || html.trim() === '') {
-                            throw new Error('Empty response');
-                        }
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
 
-                        content.innerHTML = html;
-                        console.log('✅ Profile loaded successfully');
+                    const html = await response.text();
 
-                        // Reinit Alpine برای محتوای جدید
-                        if (typeof Alpine !== 'undefined' && Alpine.initTree) {
-                            setTimeout(() => Alpine.initTree(content), 50);
-                        }
-                    })
-                    .catch(error => {
-                        if (error.name === 'AbortError') return;
+                    if (!isOpen) return;
 
-                        console.error('❌ Profile load error:', error);
-                        content.innerHTML = `
+                    if (!html || html.trim() === '') {
+                        throw new Error('Empty response');
+                    }
+
+                    content.innerHTML = html;
+
+                    if (typeof Alpine !== 'undefined' && Alpine.initTree) {
+                        setTimeout(() => Alpine.initTree(content), 50);
+                    }
+
+                    console.log('✅ Profile loaded successfully');
+
+                } catch (error) {
+                    if (error.name === 'AbortError') return;
+
+                    console.error('❌ Profile load error:', error);
+                    content.innerHTML = `
                 <div style="text-align: center; color: #dc2626; padding: 2rem 0;">
                     <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
                     <p style="font-weight: bold; margin-bottom: 0.5rem;">خطا در بارگذاری پروفایل</p>
@@ -821,14 +934,17 @@
                     </button>
                 </div>
             `;
-                    });
-            };
+                }
+            }
 
             /**
-             * 🌟 بستن Profile Drawer - تابع سراسری
+             * 🌟 بستن Profile Drawer - 🆕 بدون استفاده از history.back()
              */
-            window.closeGlobalProfileDrawer = function(restoreHistory = true) {
-                if (!isOpen) return;
+            window.closeGlobalProfileDrawer = function() {
+                if (!isOpen) {
+                    console.log('⚠️ Drawer already closed');
+                    return;
+                }
 
                 console.log('🎯 Closing profile drawer');
 
@@ -840,35 +956,48 @@
                 // انیمیشن بسته شدن
                 panel.style.transform = 'translateX(100%)';
 
-                // بعد از پایان انیمیشن، مخفی کن
                 setTimeout(() => {
                     drawer.style.display = 'none';
                     document.body.classList.remove('drawer-open');
                     isOpen = false;
 
-                    // بازیابی موقعیت اسکرول
+                    // 🆕 بازیابی موقعیت اسکرول
                     window.scrollTo(0, scrollPosition);
+
+                    // 🆕 پاک کردن state drawer بدون تغییر URL
+                    drawerHistoryState = null;
+
+                    // 🆕 لغو درخواست در حال انتظار
+                    if (currentAbortController) {
+                        currentAbortController.abort();
+                        currentAbortController = null;
+                    }
+
+                    // 🆕 پاک کردن محتوای drawer
+                    const content = document.getElementById('global-drawer-content');
+                    if (content) {
+                        content.innerHTML = '';
+                    }
+
+                    console.log('✅ Drawer closed successfully');
                 }, 300);
-
-                // لغو درخواست در حال انتظار
-                if (currentAbortController) {
-                    currentAbortController.abort();
-                    currentAbortController = null;
-                }
-
-                // بازگشت به URL قبلی
-                if (restoreHistory && history.state && history.state.drawerOpen) {
-                    history.back();
-                }
             };
 
             /**
              * 📱 دکمه Back موبایل - هندلر popstate
              */
             window.addEventListener('popstate', function(event) {
-                // اگر drawer باز است و کاربر Back زد، drawer را ببند
-                if (isOpen && (!event.state || !event.state.drawerOpen)) {
-                    closeGlobalProfileDrawer(false); // false = بدون تغییر URL (چون الان در popstate هستیم)
+                // 🆕 فقط اگر drawer باز است و state آن موجود است، ببند
+                if (isOpen && drawerHistoryState) {
+                    closeGlobalProfileDrawer();
+                    // 🆕 جلوگیری از تغییر URL (چون از replaceState استفاده کردیم)
+                    event.preventDefault();
+                    return;
+                }
+
+                // 🆕 اگر drawer باز نیست اما state drawer در history هست، آن را پاک کن
+                if (!isOpen && event.state && event.state.drawerOpen) {
+                    drawerHistoryState = null;
                 }
             });
 
@@ -886,7 +1015,18 @@
              */
             document.body.addEventListener('htmx:beforeRequest', function() {
                 if (isOpen) {
-                    closeGlobalProfileDrawer(false);
+                    closeGlobalProfileDrawer();
+                }
+            });
+
+            /**
+             * 🧹 Cleanup هنگام HTMX swap (مهم!)
+             */
+            document.body.addEventListener('htmx:afterSwap', function() {
+                // 🆕 اگر بعد از HTMX swap drawer باز بود، ببند
+                if (isOpen) {
+                    console.log('🧹 Closing drawer after HTMX swap');
+                    closeGlobalProfileDrawer();
                 }
             });
 
@@ -894,66 +1034,43 @@
              * 🧹 Cleanup هنگام خروج از صفحه
              */
             window.addEventListener('beforeunload', function() {
+                document.body.classList.remove('drawer-open');
                 if (currentAbortController) {
                     currentAbortController.abort();
                 }
             });
 
-            console.log('✅ Global Profile Drawer initialized');
-
-            // 🎯 افزودن event listener قوی برای دکمه Close
+            // 🆕 اضافه کردن event listener برای دکمه‌های Close و Backdrop
             document.addEventListener('DOMContentLoaded', function() {
                 const closeBtn = document.getElementById('drawer-close-btn');
+                const backdrop = document.getElementById('global-drawer-backdrop');
+
                 if (closeBtn) {
-                    // 🎯 Event listener مستقیم برای همه دستگاه‌ها
                     closeBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('❌ Close button clicked (click event)');
                         closeGlobalProfileDrawer();
-                        return false;
                     });
 
                     closeBtn.addEventListener('touchstart', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('👆 Close button touched');
                         closeGlobalProfileDrawer();
-                        return false;
-                    }, {
-                        passive: false
-                    });
-
-                    closeBtn.addEventListener('touchend', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
                     }, {
                         passive: false
                     });
                 }
-            });
 
-            // 🎯 همچنین برای backdrop
-            document.addEventListener('DOMContentLoaded', function() {
-                const backdrop = document.getElementById('global-drawer-backdrop');
                 if (backdrop) {
                     backdrop.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         closeGlobalProfileDrawer();
-                        return false;
-                    });
-
-                    backdrop.addEventListener('touchstart', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        closeGlobalProfileDrawer();
-                        return false;
-                    }, {
-                        passive: false
                     });
                 }
             });
+
+            console.log('✅ Global Profile Drawer initialized (fixed version)');
         })();
     </script>
 
@@ -1309,7 +1426,142 @@
 
         })();
     </script>
+    <!-- 🆕 JavaScript برای آخرین بازی با اولویت‌بندی سه‌گانه -->
+    <script>
+        /**
+         * 🎯 مدیریت کلیک روی "آخرین بازی فعال"
+         */
+        async function handleLatestGame(event) {
+            event.preventDefault();
+            event.stopPropagation();
 
+            try {
+                const response = await fetch('/api/game/latest-active', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success !== false && data.redirect) {
+                    // بازی پیدا شد - redirect
+                    window.location.href = data.redirect;
+                    return;
+                }
+
+                // هیچ بازی‌ای نیست - نمایش Toast
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        iconColor: '#6366f1',
+                        title: data.message || 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true,
+                        background: '#f0f9ff',
+                        color: '#1e40af',
+                        border: '1px solid #6366f1',
+                        width: '420px',
+                        padding: '1rem 1.5rem',
+                    });
+                } else {
+                    alert(data.message || 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید');
+                }
+
+            } catch (error) {
+                console.error('❌ Error fetching latest game:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'خطا در ارتباط با سرور',
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                }
+            }
+        }
+
+        /**
+         * 🔄 به‌روزرسانی Badge آخرین بازی - با پشتیبانی از ۳ وضعیت
+         */
+        async function updateLatestGameBadge() {
+            try {
+                const response = await fetch('/api/game/latest-active', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                // Badge در Desktop Menu
+                const badgeDesktop = document.getElementById('latest-game-badge-desktop');
+                // Badge در Mobile Menu (اگر وجود داشت)
+                const badgeMobile = document.getElementById('latest-game-badge-mobile');
+
+                const allBadges = [badgeDesktop, badgeMobile].filter(b => b !== null);
+
+                if (data.success !== false && data.status) {
+                    const statusMap = {
+                        'active': {
+                            text: 'فعال',
+                            bgColor: 'bg-green-500',
+                            textColor: 'text-white',
+                            icon: '🔴'
+                        },
+                        'pending': {
+                            text: 'در انتظار',
+                            bgColor: 'bg-yellow-500',
+                            textColor: 'text-white',
+                            icon: '⏳'
+                        },
+                        'paused': {
+                            text: 'متوقف',
+                            bgColor: 'bg-orange-500',
+                            textColor: 'text-white',
+                            icon: '⏸️'
+                        }
+                    };
+
+                    const statusInfo = statusMap[data.status] || statusMap['active'];
+
+                    allBadges.forEach(badge => {
+                        badge.textContent = statusInfo.text;
+                        badge.className = `mr-auto text-[10px] ${statusInfo.bgColor} ${statusInfo.textColor} px-1.5 py-0.5 rounded-full font-black`;
+                        badge.classList.remove('hidden');
+                    });
+
+                    console.log(`✅ Latest game badge updated: ${statusInfo.text}`);
+                } else {
+                    // هیچ بازی‌ای نیست - badge را مخفی کن
+                    allBadges.forEach(badge => {
+                        badge.classList.add('hidden');
+                    });
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not update latest game badge:', error);
+            }
+        }
+
+        // اجرای اولیه
+        document.addEventListener('DOMContentLoaded', updateLatestGameBadge);
+
+        // به‌روزرسانی هر ۳۰ ثانیه
+        setInterval(updateLatestGameBadge, 30000);
+
+        // به‌روزرسانی بعد از HTMX swap
+        document.body.addEventListener('htmx:afterSwap', updateLatestGameBadge);
+
+        // به‌روزرسانی بعد از بازگشت از drawer
+        window.addEventListener('popstate', updateLatestGameBadge);
+    </script>
 </body>
 
 </html>

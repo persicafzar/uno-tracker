@@ -260,4 +260,80 @@ class UserService
              ORDER BY level ASC"
         );
     }
+
+    /**
+     * 🆕 گرفتن آخرین بازی با اولویت‌بندی سه‌گانه
+     * 
+     * اولویت:
+     * 1. بازی فعال (active)
+     * 2. بازی در انتظار (pending)
+     * 3. بازی متوقف (paused)
+     * 4. null (هیچ بازی‌ای نیست)
+     * 
+     * @return array|null
+     */
+    public function getLatestActiveOrPausedGame(int $userId): ?array
+    {
+        // ۱. ابتدا بازی فعال
+        $activeGame = $this->db->fetchOne(
+            "SELECT g.id, g.name, g.status, g.game_mode, g.created_at
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'active'
+         ORDER BY g.created_at DESC
+         LIMIT 1",
+            [$userId]
+        );
+
+        if ($activeGame) {
+            $activeGame['priority'] = 1;
+            $activeGame['label'] = 'فعال';
+            $activeGame['color'] = 'green';
+            $activeGame['icon'] = '🔴';
+            return $activeGame;
+        }
+
+        // ۲. سپس بازی در انتظار (pending)
+        $pendingGame = $this->db->fetchOne(
+            "SELECT g.id, g.name, g.status, g.game_mode, g.created_at
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'pending'
+         ORDER BY g.created_at DESC
+         LIMIT 1",
+            [$userId]
+        );
+
+        if ($pendingGame) {
+            $pendingGame['priority'] = 2;
+            $pendingGame['label'] = 'در انتظار';
+            $pendingGame['color'] = 'yellow';
+            $pendingGame['icon'] = '⏳';
+            return $pendingGame;
+        }
+
+        // ۳. سپس بازی متوقف (paused)
+        $pausedGame = $this->db->fetchOne(
+            "SELECT g.id, g.name, g.status, g.game_mode, g.created_at
+         FROM games g
+         JOIN game_participants gp ON g.id = gp.game_id
+         WHERE gp.user_id = ? 
+         AND g.status = 'paused'
+         ORDER BY g.created_at DESC
+         LIMIT 1",
+            [$userId]
+        );
+
+        if ($pausedGame) {
+            $pausedGame['priority'] = 3;
+            $pausedGame['label'] = 'متوقف';
+            $pausedGame['color'] = 'orange';
+            $pausedGame['icon'] = '⏸️';
+            return $pausedGame;
+        }
+
+        return null;
+    }
 }

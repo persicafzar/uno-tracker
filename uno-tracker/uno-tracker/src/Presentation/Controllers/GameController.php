@@ -316,4 +316,50 @@ class GameController
             ]);
         }
     }
+    /**
+     * 🆕 آخرین بازی با اولویت‌بندی سه‌گانه - نسخه JSON
+     */
+    public function latestActive(Request $request): void
+    {
+        $userId = $this->auth->id();
+        $userService = new \Application\Services\UserService();
+
+        $game = $userService->getLatestActiveOrPausedGame($userId);
+
+        $isAjax = $request->isHtmx() ||
+            $request->header('X-Requested-With') === 'XMLHttpRequest' ||
+            strpos($request->header('Accept') ?? '', 'application/json') !== false;
+
+        if ($game) {
+            if ($isAjax) {
+                $this->response->json([
+                    'success' => true,
+                    'game_id' => $game['id'],
+                    'game_name' => $game['name'],
+                    'status' => $game['status'],
+                    'status_label' => $game['label'],
+                    'status_color' => $game['color'],
+                    'status_icon' => $game['icon'],
+                    'priority' => $game['priority'],
+                    'game_mode' => $game['game_mode'],
+                    'redirect' => '/game/' . $game['id'],
+                ]);
+            } else {
+                $this->response->redirect('/game/' . $game['id']);
+            }
+            return;
+        }
+
+        // هیچ بازی‌ای نیست
+        if ($isAjax) {
+            $this->response->json([
+                'success' => false,
+                'message' => 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید',
+                'showToast' => true
+            ]);
+        } else {
+            $request->flash('error', 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید');
+            $this->response->redirect('/dashboard');
+        }
+    }
 }
