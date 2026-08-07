@@ -816,6 +816,200 @@ $activeCategory = $_GET['tab'] ?? 'general';
                                     playNext();
                                 }
                             </script>
+                            <!-- ═══════════════════════════════════════════════════════════ -->
+                            <!-- ⏱️ بخش ویژه: تنظیمات Fallback Refresh برای SSE            -->
+                            <!-- ═══════════════════════════════════════════════════════════ -->
+                            <?php
+                            // استخراج تنظیمات fallback
+                            $fallbackSeconds = 10; // مقدار پیش‌فرض
+                            $fallbackSetting = null;
+
+                            foreach ($currentCategory as $s) {
+                                if ($s['key'] === 'sse_fallback_refresh_seconds') {
+                                    $fallbackSeconds = (int)($s['value'] ?? 10);
+                                    $fallbackSetting = $s;
+                                    break;
+                                }
+                            }
+                            ?>
+
+                            <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-300 rounded-2xl p-5 shadow-lg mb-5 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-200/20 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                                <div class="absolute bottom-0 left-0 w-24 h-24 bg-indigo-200/20 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+                                <div class="relative z-10">
+                                    <!-- هدر -->
+                                    <div class="flex items-start justify-between mb-5 pb-4 border-b-2 border-blue-200/50">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                                                <span class="text-3xl">⏱️</span>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-lg font-black text-gray-800 flex items-center gap-2">
+                                                    تنظیمات Fallback Refresh
+                                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold border border-blue-200">
+                                                        SSE
+                                                    </span>
+                                                </h3>
+                                                <p class="text-xs text-gray-600 font-medium mt-1">
+                                                    زمان انتظار قبل از refresh خودکار در صورت عدم دریافت رویداد SSE
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-100 border border-blue-300 rounded-xl">
+                                            <div class="w-2 h-2 bg-blue-500 rounded-full <?= $fallbackSeconds > 0 ? 'animate-pulse' : '' ?>"></div>
+                                            <span class="text-xs font-bold text-blue-700">
+                                                <?= $fallbackSeconds > 0 ? 'فعال' : 'غیرفعال' ?>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- کارت اصلی تنظیم -->
+                                    <div class="bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm">
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                                            <!-- توضیحات -->
+                                            <div class="md:col-span-2">
+                                                <label class="block text-sm font-black text-gray-800 mb-2 flex items-center gap-2">
+                                                    <span class="text-xl">🔄</span>
+                                                    زمان انتظار Fallback (ثانیه)
+                                                </label>
+                                                <p class="text-xs text-gray-600 font-medium mb-3 leading-relaxed">
+                                                    اگر این تعداد ثانیه از دریافت رویداد SSE بگذرد، صفحه بازی به صورت خودکار refresh می‌شود.
+                                                    <br>
+                                                    این ویژگی برای مواقعی است که اتصال SSE قطع شده اما کاربر متوجه نشده است.
+                                                </p>
+                                                <div class="flex flex-wrap gap-2 mt-3">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold border border-green-200">
+                                                        ✅ <strong>0</strong> = غیرفعال
+                                                    </span>
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold border border-blue-200">
+                                                        💡 <strong>10</strong> = پیشنهادی
+                                                    </span>
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold border border-yellow-200">
+                                                        ⚠️ <strong>30+</strong> = طولانی
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Input -->
+                                            <div class="flex items-center justify-center">
+                                                <div class="relative">
+                                                    <input type="number"
+                                                        name="settings[sse_fallback_refresh_seconds]"
+                                                        value="<?= htmlspecialchars($fallbackSeconds) ?>"
+                                                        min="0"
+                                                        max="300"
+                                                        step="1"
+                                                        id="fallback_seconds_input"
+                                                        class="w-32 px-4 py-3 border-2 border-blue-300 rounded-xl text-center text-2xl font-black text-blue-700 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-200 transition-all duration-200 bg-blue-50"
+                                                        onchange="updateFallbackStatus()">
+                                                    <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-500 font-bold">
+                                                        ثانیه
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- نوار وضعیت -->
+                                        <div class="mt-6 pt-4 border-t-2 border-blue-100">
+                                            <div class="flex items-center gap-3" id="fallback_status_container">
+                                                <div class="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div id="fallback_status_bar"
+                                                        class="h-full rounded-full transition-all duration-500 <?= $fallbackSeconds > 0 ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gray-400' ?>"
+                                                        style="width: <?= min(100, ($fallbackSeconds / 30) * 100) ?>%">
+                                                    </div>
+                                                </div>
+                                                <span id="fallback_status_text" class="text-xs font-black <?= $fallbackSeconds > 0 ? 'text-blue-700' : 'text-gray-500' ?>">
+                                                    <?= $fallbackSeconds > 0 ? "هر {$fallbackSeconds} ثانیه بررسی" : 'غیرفعال' ?>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- راهنما -->
+                                        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                                            <div class="flex items-start gap-2">
+                                                <span class="text-lg flex-shrink-0">💡</span>
+                                                <div class="text-xs text-yellow-800 space-y-1">
+                                                    <p class="font-bold">راهنمای استفاده:</p>
+                                                    <ul class="list-disc list-inside space-y-0.5 text-yellow-700">
+                                                        <li><strong>عدد 0:</strong> Fallback refresh کاملاً غیرفعال می‌شود</li>
+                                                        <li><strong>عدد 10:</strong> تعادل مناسب بین کارایی و به‌روز بودن (پیشنهادی)</li>
+                                                        <li><strong>عدد 30+:</strong> برای اتصالات ناپایدار مناسب است</li>
+                                                        <li>این تنظیم فقط در صفحه بازی (/game/{id}) اعمال می‌شود</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <script>
+                                function updateFallbackStatus() {
+                                    const input = document.getElementById('fallback_seconds_input');
+                                    const statusBar = document.getElementById('fallback_status_bar');
+                                    const statusText = document.getElementById('fallback_status_text');
+                                    const statusContainer = document.getElementById('fallback_status_container');
+
+                                    const value = parseInt(input.value) || 0;
+                                    const percentage = Math.min(100, (value / 30) * 100);
+
+                                    // به‌روزرسانی نوار
+                                    statusBar.style.width = percentage + '%';
+
+                                    // به‌روزرسانی رنگ و متن
+                                    if (value === 0) {
+                                        statusBar.className = 'h-full rounded-full transition-all duration-500 bg-gray-400';
+                                        statusText.className = 'text-xs font-black text-gray-500';
+                                        statusText.textContent = 'غیرفعال';
+                                    } else if (value <= 10) {
+                                        statusBar.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-green-500 to-emerald-600';
+                                        statusText.className = 'text-xs font-black text-green-700';
+                                        statusText.textContent = `هر ${value} ثانیه بررسی (عالی)`;
+                                    } else if (value <= 30) {
+                                        statusBar.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-blue-500 to-indigo-600';
+                                        statusText.className = 'text-xs font-black text-blue-700';
+                                        statusText.textContent = `هر ${value} ثانیه بررسی (مناسب)`;
+                                    } else {
+                                        statusBar.className = 'h-full rounded-full transition-all duration-500 bg-gradient-to-r from-yellow-500 to-orange-600';
+                                        statusText.className = 'text-xs font-black text-yellow-700';
+                                        statusText.textContent = `هر ${value} ثانیه بررسی (طولانی)`;
+                                    }
+
+                                    // به‌روزرسانی badge در هدر
+                                    const headerBadge = document.querySelector('[class*="fallback-status-badge"]');
+                                    if (headerBadge) {
+                                        if (value > 0) {
+                                            headerBadge.classList.add('animate-pulse');
+                                            headerBadge.textContent = 'فعال';
+                                        } else {
+                                            headerBadge.classList.remove('animate-pulse');
+                                            headerBadge.textContent = 'غیرفعال';
+                                        }
+                                    }
+
+                                    // نمایش Toast
+                                    if (typeof Swal !== 'undefined') {
+                                        Swal.fire({
+                                            toast: true,
+                                            position: 'top-end',
+                                            icon: 'info',
+                                            title: `Fallback: ${value} ثانیه`,
+                                            showConfirmButton: false,
+                                            timer: 1500
+                                        });
+                                    }
+                                }
+
+                                // فعال‌سازی listener
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const input = document.getElementById('fallback_seconds_input');
+                                    if (input) {
+                                        input.addEventListener('input', updateFallbackStatus);
+                                        updateFallbackStatus(); // اجرای اولیه
+                                    }
+                                });
+                            </script>
                         <?php endif; ?>
 
                         <?php
@@ -832,6 +1026,8 @@ $activeCategory = $_GET['tab'] ?? 'general';
                             if ($activeCategory === 'security' && in_array($setting['key'], $smsKeys)) continue;
                             // 🆕 رد کردن کلید تنظیمات صدای SSE از لیست عمومی
                             if ($activeCategory === 'notification' && in_array($setting['key'], $sseSoundKeys)) continue;
+                            // 🆕 رد کردن کلید تنظیمات Fallback Refresh از لیست عمومی
+                            if ($activeCategory === 'notification' && $setting['key'] === 'sse_fallback_refresh_seconds') continue;
                             ?>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start p-4 bg-gray-50/80 rounded-2xl  border-gray-200 hover:border-indigo-300 transition-all duration-200 hover:shadow-md">
                                 <div><label class="block text-sm font-black text-gray-800 mb-1"><?= htmlspecialchars(str_replace('_', ' ', $setting['key'])) ?></label><?php if (!empty($setting['description'])): ?><p class="text-xs text-gray-500 font-medium"><?= htmlspecialchars($setting['description']) ?></p><?php endif; ?></div>

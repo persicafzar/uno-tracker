@@ -354,20 +354,16 @@ class AdminController
         $settingsRepo = SettingsRepository::getInstance();
 
         foreach ($settings as $key => $value) {
-            // 🆕 تعیین نوع داده
             $type = 'string';
             $valueToSave = $value;
 
-            // 🆕 اولویت ۱: کلیدهای مشخص که همیشه JSON هستند
-            $jsonKeys = ['sse_sound_settings'];
+            // 🆕 اولویت ۱: کلیدهای JSON
+            $jsonKeys = ['sse_sound_settings', 'allowed_image_types'];
             if (in_array($key, $jsonKeys)) {
                 $type = 'json';
-                // اگر value یک آرایه PHP است، encode کن
                 if (is_array($value)) {
                     $valueToSave = json_encode($value, JSON_UNESCAPED_UNICODE);
-                }
-                // اگر string است، decode و re-encode کن تا تمیز شود
-                elseif (is_string($value)) {
+                } elseif (is_string($value)) {
                     $decoded = json_decode($value, true);
                     if (json_last_error() === JSON_ERROR_NONE) {
                         $valueToSave = json_encode($decoded, JSON_UNESCAPED_UNICODE);
@@ -377,29 +373,36 @@ class AdminController
                     }
                 }
             }
-            // 🆕 اولویت ۲: تشخیص خودکار
+            // 🆕 اولویت ۲: کلیدهای integer (شامل sse_fallback_refresh_seconds)
+            elseif (in_array($key, ['sse_fallback_refresh_seconds', 'default_notification_duration'])) {
+                $type = 'integer';
+                $valueToSave = (int)$value;
+            }
+            // 🆕 اولویت ۳: تشخیص خودکار
             elseif (is_numeric($value) && strpos((string)$value, '.') === false) {
                 $type = 'integer';
+                $valueToSave = (int)$value;
             } elseif (is_numeric($value)) {
                 $type = 'float';
+                $valueToSave = (float)$value;
             } elseif ($value === '0' || $value === '1') {
                 $type = 'boolean';
             }
 
-            // 🆕 ذخیره مستقیم در دیتابیس با type صحیح
+            // ذخیره در دیتابیس
             $this->db->query(
                 "INSERT INTO system_settings (setting_key, setting_value, setting_type, category, updated_by, updated_at)
              VALUES (?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE 
-                setting_value = VALUES(setting_value),
-                setting_type = VALUES(setting_type),
-                category = VALUES(category),
-                updated_by = VALUES(updated_by),
-                updated_at = NOW()",
+             ON DUPLICATE KEY UPDATE
+             setting_value = VALUES(setting_value),
+             setting_type = VALUES(setting_type),
+             category = VALUES(category),
+             updated_by = VALUES(updated_by),
+             updated_at = NOW()",
                 [$key, $valueToSave, $type, $category, $admin['id']]
             );
 
-            // 🆕 ثبت لاگ
+            // ثبت لاگ
             $this->adminService->updateSetting(
                 $key,
                 is_string($valueToSave) ? $valueToSave : json_encode($valueToSave),
@@ -409,7 +412,7 @@ class AdminController
             );
         }
 
-        // 🆕 پاک کردن کش
+        // پاک کردن کش
         $settingsRepo->clearCache();
 
         if ($request->isHtmx()) {
@@ -418,7 +421,6 @@ class AdminController
             $this->response->redirect('/admin/settings?tab=' . $category . '&saved=1');
         }
     }
-
 
 
 
