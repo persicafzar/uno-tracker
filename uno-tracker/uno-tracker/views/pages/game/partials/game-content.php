@@ -280,7 +280,7 @@ $referee = \Core\Database::getInstance()->fetchOne(
                                     }
                                 }
                                 if ($teamName) {
-                                    echo '<strong class="text-yellow-200 text-xl sm:text-2xl drop-shadow-md">🏅 تیم ' . htmlspecialchars($teamName) . '</strong>';
+                                    echo '<strong class="text-yellow-200 text-xl sm:text-2xl drop-shadow-md">🏅 ' . htmlspecialchars($teamName) . '</strong>';
                                 } else {
                                     echo '<strong class="text-yellow-200 text-xl sm:text-2xl drop-shadow-md">' . htmlspecialchars($winner->getDisplayName()) . '</strong>';
                                 }
