@@ -139,43 +139,54 @@ class UserService
         return $existing !== null;
     }
     /**
-     * گرفتن لیست بازیکنان با اطلاعات کامل
+     * 🆕 گرفتن لیست بازیکنان با فیلتر، جستجو و مرتب‌سازی - اصلاح شده
      */
     public function getUsersList(array $filters = [], string $sortBy = 'newest', int $page = 1, int $perPage = 20): array
     {
-        $where = ['u.status = ?', 'u.status != ?'];
-        $params = ['active', 'banned'];
+        $where = ["u.status = 'active'"];
+        $params = [];
 
         // فیلتر جستجو
         if (!empty($filters['search'])) {
             $where[] = "(u.nickname LIKE ? OR u.real_name LIKE ? OR u.phone LIKE ?)";
-            $search = '%' . $filters['search'] . '%';
-            $params[] = $search;
-            $params[] = $search;
-            $params[] = $search;
+            $searchParam = '%' . $filters['search'] . '%';
+            $params[] = $searchParam;
+            $params[] = $searchParam;
+            $params[] = $searchParam;
         }
 
-        // فیلتر سطح
-        if (!empty($filters['level'])) {
+        // فیلتر بر اساس سطح
+        if (!empty($filters['level']) && is_numeric($filters['level'])) {
             $where[] = "COALESCE(ux.current_level, 1) = ?";
             $params[] = (int) $filters['level'];
         }
 
-        $whereClause = implode(' AND ', $where);
+        // فیلتر بر اساس وضعیت
+        if (!empty($filters['status'])) {
+            $where[] = "u.status = ?";
+            $params[] = $filters['status'];
+        }
 
         // مرتب‌سازی
         $orderBy = match ($sortBy) {
-            'xp' => 'COALESCE(ux.total_xp, 0) DESC',
-            'points' => 'COALESCE(lc.total_points, 0) DESC',
-            'wins' => 'COALESCE(lc.total_wins, 0) DESC',
-            'games' => 'COALESCE(lc.total_games, 0) DESC',
-            'win_rate' => 'COALESCE(lc.win_rate, 0) DESC',
+            'xp_desc' => 'COALESCE(ux.total_xp, 0) DESC',
+            'xp_asc' => 'COALESCE(ux.total_xp, 0) ASC',
+            'points_desc' => 'COALESCE(lc.total_points, 0) DESC',
+            'points_asc' => 'COALESCE(lc.total_points, 0) ASC',
+            'wins_desc' => 'COALESCE(lc.total_wins, 0) DESC',
+            'wins_asc' => 'COALESCE(lc.total_wins, 0) ASC',
+            'name_asc' => 'u.nickname ASC',
+            'name_desc' => 'u.nickname DESC',
+            'oldest' => 'u.created_at ASC',
+            'level_desc' => 'COALESCE(ux.current_level, 1) DESC',
+            'newest' => 'u.created_at DESC',
             default => 'u.created_at DESC',
         };
 
+        $whereClause = implode(' AND ', $where);
         $offset = ($page - 1) * $perPage;
 
-        // 🆕 Query اصلاح شده با محاسبه سطح از روی XP
+        // 🆕 گرفتن لیست کاربران با محاسبه سطح از روی XP
         $users = $this->db->fetchAll(
             "SELECT 
             u.id,
@@ -183,38 +194,37 @@ class UserService
             u.real_name,
             u.avatar_path,
             u.created_at,
+            u.status,
             COALESCE(ux.total_xp, 0) as total_xp,
-            -- 🆕 محاسبه سطح از روی XP به جای استفاده از current_level ذخیره شده
+            -- 🆕 محاسبه سطح از روی XP
             COALESCE((
                 SELECT pl.level 
                 FROM player_levels pl 
                 WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
                 LIMIT 1
             ), 1) as current_level,
-            -- 🆕 گرفتن عنوان سطح
+            t.name as current_title,
+            t.icon as title_icon,
             COALESCE((
                 SELECT pl.title 
                 FROM player_levels pl 
                 WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
                 LIMIT 1
             ), 'تازه‌کار') as level_title,
-            -- 🆕 گرفتن رنگ سطح
             COALESCE((
                 SELECT pl.color 
                 FROM player_levels pl 
                 WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
                 LIMIT 1
             ), '#6366f1') as level_color,
-            COALESCE(lc.total_points, 0) as total_points,
             COALESCE(lc.total_games, 0) as total_games,
             COALESCE(lc.total_wins, 0) as total_wins,
-            COALESCE(lc.win_rate, 0) as win_rate,
-            t.name as current_title,
-            t.icon as title_icon
+            COALESCE(lc.total_points, 0) as total_points,
+            COALESCE(lc.win_rate, 0) as win_rate
          FROM users u
          LEFT JOIN user_xp ux ON u.id = ux.user_id
-         LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
          LEFT JOIN titles t ON u.current_title_id = t.id
+         LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
          WHERE {$whereClause}
          ORDER BY {$orderBy}
          LIMIT ? OFFSET ?",
@@ -222,17 +232,20 @@ class UserService
         );
 
         // تعداد کل
-        $total = (int) $this->db->fetchOne(
-            "SELECT COUNT(*) as count FROM users u WHERE {$whereClause}",
+        $total = $this->db->fetchOne(
+            "SELECT COUNT(*) as count
+         FROM users u
+         LEFT JOIN user_xp ux ON u.id = ux.user_id
+         WHERE {$whereClause}",
             $params
-        )['count'];
+        );
 
         return [
             'users' => $users,
-            'total' => $total,
+            'total' => (int) ($total['count'] ?? 0),
             'page' => $page,
             'perPage' => $perPage,
-            'totalPages' => ceil($total / $perPage),
+            'totalPages' => (int) ceil(($total['count'] ?? 0) / $perPage),
         ];
     }
 
