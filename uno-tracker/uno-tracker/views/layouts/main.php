@@ -664,37 +664,63 @@
     </script>
 
     <!-- ========================================== -->
-    <!-- ======= پردازش مجدد Alpine بعد از HTMX ======= -->
+    <!-- ======= پردازش مجدد Alpine بعد از HTMX - نسخه بهینه ======= -->
     <!-- ========================================== -->
     <script>
         (function() {
-            function reinitAlpine() {
-                if (typeof Alpine !== 'undefined' && Alpine.initTree) {
-                    Alpine.initTree(document.body);
-                    document.querySelectorAll('[x-data]').forEach(el => {
-                        Alpine.initTree(el);
-                    });
-                    console.log('🔄 Alpine reinitialized after HTMX swap');
-                }
+            // 🆕 جلوگیری از اجرای duplicate
+            if (window._alpineReinitInstalled) return;
+            window._alpineReinitInstalled = true;
+
+            let reinitTimeout = null;
+
+            function reinitAlpine(target) {
+                // Debounce برای جلوگیری از اجرای مکرر
+                if (reinitTimeout) clearTimeout(reinitTimeout);
+
+                reinitTimeout = setTimeout(() => {
+                    if (typeof Alpine !== 'undefined') {
+                        // 🆕 فقط target مشخص را reinit کن (نه کل body)
+                        if (target && target !== document.body) {
+                            Alpine.initTree(target);
+                        } else if (typeof Alpine.initTree === 'function') {
+                            // 🆕 برای کل body، فقط عناصر جدید را reinit کن
+                            document.querySelectorAll('[x-data]').forEach(el => {
+                                if (!el._x_dataStack) {
+                                    Alpine.initTree(el);
+                                }
+                            });
+                        }
+                    }
+                }, 50); // 🆕 debounce 50ms
             }
 
-            document.body.addEventListener('htmx:afterSwap', function(evt) {
-                if (evt.detail.target && typeof Alpine !== 'undefined' && Alpine.initTree) {
-                    Alpine.initTree(evt.detail.target);
-                    console.log('🔄 Alpine processed on swapped target');
+            // 🆕 Cleanup قبل از swap
+            document.body.addEventListener('htmx:beforeSwap', function(evt) {
+                const target = evt.detail.target;
+                if (target) {
+                    // حذف event listener های قدیمی
+                    target.querySelectorAll('[x-data]').forEach(el => {
+                        if (el._x_dataStack) {
+                            el._x_dataStack = null;
+                        }
+                    });
                 }
-                reinitAlpine();
+            });
+
+            document.body.addEventListener('htmx:afterSwap', function(evt) {
+                if (evt.detail.target) {
+                    reinitAlpine(evt.detail.target);
+                }
             });
 
             document.body.addEventListener('htmx:afterSettle', function(evt) {
-                reinitAlpine();
+                if (evt.detail.target) {
+                    reinitAlpine(evt.detail.target);
+                }
             });
 
-            document.body.addEventListener('htmx:afterOnLoad', function(evt) {
-                reinitAlpine();
-            });
-
-            console.log('✅ Alpine reinit script installed');
+            console.log('✅ Alpine reinit script installed (optimized)');
         })();
     </script>
 

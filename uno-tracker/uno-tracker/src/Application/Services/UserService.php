@@ -139,96 +139,100 @@ class UserService
         return $existing !== null;
     }
     /**
-     * 🆕 گرفتن لیست بازیکنان با فیلتر، جستجو و مرتب‌سازی
+     * گرفتن لیست بازیکنان با اطلاعات کامل
      */
     public function getUsersList(array $filters = [], string $sortBy = 'newest', int $page = 1, int $perPage = 20): array
     {
-        $where = ["u.status = 'active'"];
-        $params = [];
+        $where = ['u.status = ?', 'u.status != ?'];
+        $params = ['active', 'banned'];
 
         // فیلتر جستجو
         if (!empty($filters['search'])) {
             $where[] = "(u.nickname LIKE ? OR u.real_name LIKE ? OR u.phone LIKE ?)";
-            $searchParam = '%' . $filters['search'] . '%';
-            $params[] = $searchParam;
-            $params[] = $searchParam;
-            $params[] = $searchParam;
+            $search = '%' . $filters['search'] . '%';
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
         }
 
-        // فیلتر بر اساس سطح
+        // فیلتر سطح
         if (!empty($filters['level'])) {
             $where[] = "COALESCE(ux.current_level, 1) = ?";
             $params[] = (int) $filters['level'];
         }
 
-        // فیلتر بر اساس وضعیت
-        if (!empty($filters['status'])) {
-            $where[] = "u.status = ?";
-            $params[] = $filters['status'];
-        }
+        $whereClause = implode(' AND ', $where);
 
         // مرتب‌سازی
         $orderBy = match ($sortBy) {
-            'xp_desc' => 'COALESCE(ux.total_xp, 0) DESC',
-            'xp_asc' => 'COALESCE(ux.total_xp, 0) ASC',
-            'points_desc' => 'COALESCE(lc.total_points, 0) DESC',  // 🆕
-            'points_asc' => 'COALESCE(lc.total_points, 0) ASC',    // 🆕
-            'name_asc' => 'u.nickname ASC',
-            'name_desc' => 'u.nickname DESC',
-            'oldest' => 'u.created_at ASC',
-            'level_desc' => 'COALESCE(ux.current_level, 1) DESC',
-            'newest' => 'u.created_at DESC',
+            'xp' => 'COALESCE(ux.total_xp, 0) DESC',
+            'points' => 'COALESCE(lc.total_points, 0) DESC',
+            'wins' => 'COALESCE(lc.total_wins, 0) DESC',
+            'games' => 'COALESCE(lc.total_games, 0) DESC',
+            'win_rate' => 'COALESCE(lc.win_rate, 0) DESC',
             default => 'u.created_at DESC',
         };
 
-        $whereClause = implode(' AND ', $where);
         $offset = ($page - 1) * $perPage;
 
-        // گرفتن لیست کاربران
+        // 🆕 Query اصلاح شده با محاسبه سطح از روی XP
         $users = $this->db->fetchAll(
             "SELECT 
-                u.id,
-                u.nickname,
-                u.real_name,
-                u.avatar_path,
-                u.created_at,
-                u.status,
-                COALESCE(ux.total_xp, 0) as total_xp,
-                COALESCE(ux.current_level, 1) as current_level,
-                t.name as current_title,
-                t.icon as title_icon,
-                pl.title as level_title,
-                pl.color as level_color,
-                COALESCE(lc.total_games, 0) as total_games,
-                COALESCE(lc.total_wins, 0) as total_wins,
-                COALESCE(lc.total_points, 0) as total_points,
-                COALESCE(lc.win_rate, 0) as win_rate
-             FROM users u
-             LEFT JOIN user_xp ux ON u.id = ux.user_id
-             LEFT JOIN titles t ON u.current_title_id = t.id
-             LEFT JOIN player_levels pl ON ux.current_level = pl.level
-             LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
-             WHERE {$whereClause}
-             ORDER BY {$orderBy}
-             LIMIT ? OFFSET ?",
+            u.id,
+            u.nickname,
+            u.real_name,
+            u.avatar_path,
+            u.created_at,
+            COALESCE(ux.total_xp, 0) as total_xp,
+            -- 🆕 محاسبه سطح از روی XP به جای استفاده از current_level ذخیره شده
+            COALESCE((
+                SELECT pl.level 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), 1) as current_level,
+            -- 🆕 گرفتن عنوان سطح
+            COALESCE((
+                SELECT pl.title 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), 'تازه‌کار') as level_title,
+            -- 🆕 گرفتن رنگ سطح
+            COALESCE((
+                SELECT pl.color 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), '#6366f1') as level_color,
+            COALESCE(lc.total_points, 0) as total_points,
+            COALESCE(lc.total_games, 0) as total_games,
+            COALESCE(lc.total_wins, 0) as total_wins,
+            COALESCE(lc.win_rate, 0) as win_rate,
+            t.name as current_title,
+            t.icon as title_icon
+         FROM users u
+         LEFT JOIN user_xp ux ON u.id = ux.user_id
+         LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
+         LEFT JOIN titles t ON u.current_title_id = t.id
+         WHERE {$whereClause}
+         ORDER BY {$orderBy}
+         LIMIT ? OFFSET ?",
             array_merge($params, [$perPage, $offset])
         );
 
-        // تعداد کل برای Pagination
-        $total = $this->db->fetchOne(
-            "SELECT COUNT(*) as count
-             FROM users u
-             LEFT JOIN user_xp ux ON u.id = ux.user_id
-             WHERE {$whereClause}",
+        // تعداد کل
+        $total = (int) $this->db->fetchOne(
+            "SELECT COUNT(*) as count FROM users u WHERE {$whereClause}",
             $params
-        );
+        )['count'];
 
         return [
             'users' => $users,
-            'total' => (int) ($total['count'] ?? 0),
+            'total' => $total,
             'page' => $page,
             'perPage' => $perPage,
-            'totalPages' => ceil(($total['count'] ?? 0) / $perPage),
+            'totalPages' => ceil($total / $perPage),
         ];
     }
 

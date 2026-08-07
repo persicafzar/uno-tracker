@@ -511,32 +511,32 @@ $referee = \Core\Database::getInstance()->fetchOne(
     function profileDrawer() {
         return {
             showProfile: false,
+            abortController: null, // 🆕 برای لغو درخواست‌های قبلی
 
             init() {
-                window.addEventListener('open-profile', (event) => {
-                    this.open(event.detail.url);
+                // 🆕 استفاده از event delegation به جای listener مستقیم
+                document.addEventListener('click', (e) => {
+                    const trigger = e.target.closest('[data-open-profile]');
+                    if (trigger) {
+                        e.preventDefault();
+                        this.open(trigger.dataset.openProfile);
+                    }
                 });
 
-                window.addEventListener('popstate', (event) => {
+                window.addEventListener('popstate', () => {
                     if (this.showProfile) {
                         this.close();
-                        history.replaceState(null, '', location.href);
                     }
-                });
-
-                document.addEventListener('touchmove', (e) => {
-                    if (this.showProfile && e.target.closest('.fixed.inset-y-0.left-0')) {
-                        return;
-                    }
-                    if (this.showProfile) {
-                        e.preventDefault();
-                    }
-                }, {
-                    passive: false
                 });
             },
 
             open(url) {
+                // 🆕 لغو درخواست قبلی
+                if (this.abortController) {
+                    this.abortController.abort();
+                }
+                this.abortController = new AbortController();
+
                 if (!this.showProfile) {
                     history.pushState({
                         drawer: true
@@ -549,7 +549,7 @@ $referee = \Core\Database::getInstance()->fetchOne(
                 contentDiv.innerHTML = `
                     <div class="text-center text-gray-500 py-12">
                         <div class="animate-spin inline-block w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
-                        <p class="text-sm sm:text-base font-medium">در حال بارگذاری...</p>
+                        <p class="text-sm font-medium">در حال بارگذاری...</p>
                     </div>
                 `;
 
@@ -557,24 +557,30 @@ $referee = \Core\Database::getInstance()->fetchOne(
                         cache: 'no-store',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
-                        }
+                        },
+                        signal: this.abortController.signal // 🆕 signal برای لغو
                     })
                     .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
                         return response.text();
                     })
                     .then(html => {
                         contentDiv.innerHTML = html;
+                        // 🆕 Reinit Alpine فقط برای محتوای جدید
+                        if (typeof Alpine !== 'undefined') {
+                            Alpine.initTree(contentDiv);
+                        }
                     })
                     .catch(error => {
-                        console.error('❌ Error loading profile:', error);
-                        contentDiv.innerHTML = `
-                        <div class="text-center text-rose-600 py-8 text-sm sm:text-base">
-                            <div class="text-5xl mb-3 opacity-50">⚠️</div>
-                            <p class="font-bold">خطا در بارگذاری پروفایل</p>
-                            <p class="text-xs text-gray-500 font-medium mt-2">${error.message}</p>
-                        </div>
-                    `;
+                        if (error.name !== 'AbortError') {
+                            console.error('❌ Profile load error:', error);
+                            contentDiv.innerHTML = `
+                            <div class="text-center text-rose-600 py-8">
+                                <div class="text-4xl mb-2">⚠️</div>
+                                <p class="font-bold">خطا در بارگذاری</p>
+                            </div>
+                        `;
+                        }
                     });
             },
 
@@ -582,6 +588,13 @@ $referee = \Core\Database::getInstance()->fetchOne(
                 if (!this.showProfile) return;
                 this.showProfile = false;
                 document.body.style.overflow = '';
+
+                // 🆕 لغو درخواست در حال انتظار
+                if (this.abortController) {
+                    this.abortController.abort();
+                    this.abortController = null;
+                }
+
                 if (history.state && history.state.drawer) {
                     history.replaceState(null, '', location.href);
                 }
@@ -589,14 +602,16 @@ $referee = \Core\Database::getInstance()->fetchOne(
         }
     }
 
-    function openProfile(url) {
-        console.log('🎯 openProfile called with:', url);
-        window.dispatchEvent(new CustomEvent('open-profile', {
-            detail: {
-                url: url
-            }
-        }));
-    }
+    // 🆕 تابع ساده برای باز کردن پروفایل
+    window.openProfile = function(url) {
+        const drawer = document.querySelector('[x-data*="profileDrawer"]');
+        if (drawer && drawer.__x) {
+            drawer.__x.$data.open(url);
+        } else {
+            // Fallback
+            window.location.href = url;
+        }
+    };
 </script>
 
 <!-- Settings -->

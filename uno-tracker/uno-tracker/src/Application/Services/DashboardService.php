@@ -449,35 +449,52 @@ class DashboardService
         );
     }
     /**
-     * 🆕 گرفتن بازیکنان با بالاترین امتیاز (Top Players)
+     * 🆕 گرفتن بازیکنان با بالاترین امتیاز (Top Players) - اصلاح شده
      */
     public function getTopPlayers(int $limit = 10): array
     {
         return $this->db->fetchAll(
             "SELECT 
-                u.id,
-                u.nickname,
-                u.real_name,
-                u.tagline,
-                u.avatar_path,
-                u.created_at,
-                COALESCE(ux.total_xp, 0) as total_xp,
-                COALESCE(ux.current_level, 1) as current_level,
-                COALESCE(lc.total_points, 0) as total_points,
-                COALESCE(lc.total_games, 0) as total_games,
-                COALESCE(lc.total_wins, 0) as total_wins,
-                t.name as current_title,
-                t.icon as title_icon,
-                pl.title as level_title,
-                pl.color as level_color
-             FROM users u
-             LEFT JOIN user_xp ux ON u.id = ux.user_id
-             LEFT JOIN titles t ON u.current_title_id = t.id
-             LEFT JOIN player_levels pl ON ux.current_level = pl.level
-             LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
-             WHERE u.status = 'active'
-             ORDER BY COALESCE(lc.total_points, 0) DESC, COALESCE(ux.total_xp, 0) DESC
-             LIMIT ?",
+            u.id,
+            u.nickname,
+            u.real_name,
+            u.tagline,
+            u.avatar_path,
+            u.created_at,
+            COALESCE(ux.total_xp, 0) as total_xp,
+            -- 🆕 محاسبه سطح از روی XP
+            COALESCE((
+                SELECT pl.level 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), 1) as current_level,
+            -- 🆕 عنوان سطح
+            COALESCE((
+                SELECT pl.title 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), 'تازه‌کار') as level_title,
+            -- 🆕 رنگ سطح
+            COALESCE((
+                SELECT pl.color 
+                FROM player_levels pl 
+                WHERE COALESCE(ux.total_xp, 0) BETWEEN pl.min_xp AND pl.max_xp 
+                LIMIT 1
+            ), '#6366f1') as level_color,
+            COALESCE(lc.total_points, 0) as total_points,
+            COALESCE(lc.total_games, 0) as total_games,
+            COALESCE(lc.total_wins, 0) as total_wins,
+            t.name as current_title,
+            t.icon as title_icon
+         FROM users u
+         LEFT JOIN user_xp ux ON u.id = ux.user_id
+         LEFT JOIN titles t ON u.current_title_id = t.id
+         LEFT JOIN leaderboard_cache lc ON u.id = lc.user_id
+         WHERE u.status = 'active'
+         ORDER BY COALESCE(lc.total_points, 0) DESC, COALESCE(ux.total_xp, 0) DESC
+         LIMIT ?",
             [$limit]
         );
     }

@@ -68,12 +68,12 @@ class LevelService
     }
 
     /**
-     * گرفتن اطلاعات XP و سطح کاربر
+     * گرفتن اطلاعات XP و سطح کاربر - 🆕 اصلاح شده
      */
     public function getUserXpInfo(int $userId): array
     {
         $userXp = $this->repo->getUserXp($userId);
-        
+
         if (!$userXp) {
             // کاربر هنوز XP ندارد
             $firstLevel = $this->repo->getLevelByXp(0);
@@ -86,16 +86,27 @@ class LevelService
             ];
         }
 
+        // 🆕 همیشه سطح را از روی XP محاسبه کن (نه از current_level ذخیره شده)
         $levelData = $this->repo->getLevelByXp($userXp->total_xp);
-        $progress = $levelData 
+
+        // اگر سطحی پیدا نشد، از سطح 1 استفاده کن
+        if (!$levelData) {
+            $levelData = $this->repo->getLevelByXp(0);
+        }
+
+        // 🆕 محاسبه درصد پیشرفت
+        $progress = $levelData
             ? PlayerLevel::calculateProgress($userXp->total_xp, $levelData->min_xp, $levelData->max_xp)
             : 100;
 
+        // 🆕 سطح صحیح از level_data
+        $correctLevel = $levelData ? $levelData->level : 1;
+
         return [
             'total_xp' => $userXp->total_xp,
-            'current_level' => $userXp->current_level,
+            'current_level' => $correctLevel, // 🆕 استفاده از سطح محاسبه شده
             'level_data' => $levelData,
-            'xp_to_next_level' => $userXp->xp_to_next_level,
+            'xp_to_next_level' => $levelData ? $levelData->getXpToNextLevel($userXp->total_xp) : 100,
             'progress_percentage' => round($progress, 1),
         ];
     }
