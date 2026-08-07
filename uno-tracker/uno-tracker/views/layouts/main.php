@@ -424,241 +424,261 @@
     </footer>
 
     <!-- ========================================== -->
-    <!-- 🆕 PROFILE DRAWER - GLOBAL (همیشه در دسترس) -->
+    <!-- 🌍 GLOBAL PROFILE DRAWER (همیشه در دسترس) -->
     <!-- ========================================== -->
-    <div x-data="{ 
-        show: false, 
-        loading: true,
-        currentUrl: ''
-    }"
-        x-show="show"
-        x-cloak
-        class="fixed inset-0 z-[9999]"
-        @profile-drawer-open.window="
-        show = true;
-        loading = true;
-        currentUrl = $event.detail.url;
-        loadProfileContent($event.detail.url);
-    "
-        @profile-drawer-close.window="closeDrawer()"
-        @keydown.escape.window="if (show) closeDrawer()"
-        x-effect="
-        if (show) {
-            document.body.classList.add('no-scroll');
-        } else {
-            document.body.classList.remove('no-scroll');
-        }
-    ">
+    <div id="global-profile-drawer"
+        style="display: none; position: fixed; inset: 0; z-index: 9999;"
+        role="dialog"
+        aria-modal="true">
 
-        <!-- Backdrop -->
-        <div x-show="show"
-            x-transition:enter="ease-out duration-300"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="ease-in duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            @click="closeDrawer()"
-            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+        <!-- Backdrop (قابل کلیک برای بستن) -->
+        <div id="global-drawer-backdrop"
+            onclick="closeGlobalProfileDrawer()"
+            style="position: fixed; inset: 0; background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(4px); cursor: pointer;">
+        </div>
 
         <!-- Drawer Panel -->
-        <div x-show="show"
-            x-transition:enter="transform transition ease-in-out duration-300"
-            x-transition:enter-start="translate-x-full"
-            x-transition:enter-end="translate-x-0"
-            x-transition:leave="transform transition ease-in-out duration-300"
-            x-transition:leave-start="translate-x-0"
-            x-transition:leave-end="translate-x-full"
-            class="fixed inset-y-0 left-0 max-w-md w-full bg-white shadow-2xl overflow-y-auto border-l-2 border-gray-200/50 z-[10000]">
+        <div id="global-drawer-panel"
+            style="position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 28rem; background: white; overflow-y: auto; box-shadow: -4px 0 20px rgba(0,0,0,0.15); transform: translateX(100%); transition: transform 0.3s ease-out; border-left: 2px solid rgba(229, 231, 235, 0.5);">
 
             <!-- Header -->
-            <div class="backdrop-blur-sm bg-white/90 border-b-2 border-gray-200/60 flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 sticky top-0 z-50">
-                <h3 class="text-base sm:text-lg font-black text-gray-800 tracking-tight">پروفایل کاربر</h3>
-                <button @click.stop="closeDrawer()"
-                    class="text-gray-500 hover:text-gray-700 transition-all duration-200 p-3 rounded-xl hover:bg-gray-100 touch-manipulation active:bg-gray-200"
-                    style="min-width: 48px; min-height: 48px;"
-                    aria-label="بستن پروفایل">
-                    <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <div style="position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 2px solid rgba(229, 231, 235, 0.6); padding: 0.875rem 1rem; display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="font-size: 1.125rem; font-weight: 900; color: #1f2937; margin: 0;">پروفایل کاربر</h3>
+                <button onclick="closeGlobalProfileDrawer()"
+                    style="min-width: 44px; min-height: 44px; padding: 0.5rem; background: transparent; border: none; border-radius: 0.75rem; cursor: pointer; color: #6b7280; display: flex; align-items: center; justify-content: center; touch-action: manipulation;"
+                    aria-label="بستن">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
 
             <!-- Content -->
-            <div id="profile-drawer-content" class="p-4 sm:p-6">
-                <div x-show="loading" class="text-center text-gray-500 py-12">
-                    <div class="animate-spin inline-block w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
-                    <p class="text-sm sm:text-base font-medium">در حال بارگذاری...</p>
+            <div id="global-drawer-content" style="padding: 1rem;">
+                <div style="text-align: center; color: #6b7280; padding: 3rem 0;">
+                    <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
+                    <p style="font-weight: 500;">در حال بارگذاری...</p>
                 </div>
-                <div x-show="!loading" id="profile-drawer-content-html"></div>
             </div>
         </div>
     </div>
 
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 🎯 جلوگیری از اسکرول body وقتی drawer باز است */
+        body.drawer-open {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            top: 0 !important;
+            left: 0 !important;
+        }
+
+        /* 🎯 اطمینان از z-index دکمه همبرگری */
+        nav.z-50 {
+            z-index: 50 !important;
+        }
+
+        /* 🎯 Mobile menu باید زیر drawer باشد */
+        .md\:hidden+div[x-show="mobileMenuOpen"] {
+            z-index: 40 !important;
+        }
+
+        /* 🎯 وقتی drawer باز است، همه عناصر زیر آن باشند */
+        body.drawer-open nav,
+        body.drawer-open main,
+        body.drawer-open footer,
+        body.drawer-open .fixed:not(#global-profile-drawer) {
+            pointer-events: none !important;
+        }
+
+        /* 🎯 خود drawer باید قابل تعامل باشد */
+        body.drawer-open #global-profile-drawer,
+        body.drawer-open #global-profile-drawer * {
+            pointer-events: auto !important;
+        }
+    </style>
+
     <!-- ========================================== -->
-    <!-- 🆕 PROFILE DRAWER SCRIPT (Global) -->
+    <!-- 🎯 GLOBAL DRAWER SCRIPT (همیشه در دسترس) -->
     <!-- ========================================== -->
     <script>
         (function() {
-            let abortController = null;
+            'use strict';
+
+            // متغیرهای سراسری
+            let currentAbortController = null;
+            let scrollPosition = 0;
+            let isOpen = false;
 
             /**
-             * 🎯 باز کردن Profile Drawer
-             * این تابع از همه جا در دسترس است (scoreboard, rounds, و...)
+             * 🌟 باز کردن Profile Drawer - تابع سراسری
+             * از همه جا (scoreboard, rounds, ...) قابل فراخوانی است
              */
             window.openProfile = function(url) {
+                if (isOpen) {
+                    closeGlobalProfileDrawer(false); // بدون تغییر URL
+                }
+
                 console.log('🎯 Opening profile drawer:', url);
 
                 // لغو درخواست قبلی
-                if (abortController) {
-                    abortController.abort();
+                if (currentAbortController) {
+                    currentAbortController.abort();
                 }
-                abortController = new AbortController();
+                currentAbortController = new AbortController();
 
-                // Dispatch event به Alpine
-                window.dispatchEvent(new CustomEvent('profile-drawer-open', {
-                    detail: {
-                        url: url
-                    }
-                }));
+                // ذخیره موقعیت اسکرول
+                scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
 
-                // تغییر URL برای دکمه Back
+                // باز کردن drawer
+                const drawer = document.getElementById('global-profile-drawer');
+                const panel = document.getElementById('global-drawer-panel');
+                const content = document.getElementById('global-drawer-content');
+
+                if (!drawer || !panel || !content) {
+                    console.error('❌ Drawer elements not found');
+                    window.location.href = url;
+                    return;
+                }
+
+                // نمایش drawer
+                drawer.style.display = 'block';
+                document.body.classList.add('drawer-open');
+                isOpen = true;
+
+                // انیمیشن باز شدن
+                requestAnimationFrame(() => {
+                    panel.style.transform = 'translateX(0)';
+                });
+
+                // Loading state
+                content.innerHTML = `
+            <div style="text-align: center; color: #6b7280; padding: 3rem 0;">
+                <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
+                <p style="font-weight: 500;">در حال بارگذاری...</p>
+            </div>
+        `;
+
+                // اضافه کردن به History برای دکمه Back موبایل
                 try {
-                    const drawerUrl = new URL(url, window.location.origin).href;
                     history.pushState({
-                        drawer: true,
-                        url: drawerUrl
-                    }, '', drawerUrl);
+                        drawerOpen: true,
+                        url: url
+                    }, '', url);
                 } catch (e) {
                     console.warn('History pushState failed:', e);
                 }
-            };
 
-            /**
-             * 🎯 بارگذاری محتوای پروفایل
-             */
-            window.loadProfileContent = async function(url) {
-                const contentDiv = document.getElementById('profile-drawer-content-html');
-                const loadingDiv = contentDiv?.parentElement?.querySelector('[x-show="loading"]');
-
-                if (!contentDiv) return;
-
-                try {
-                    const response = await fetch(url, {
+                // Fetch محتوا
+                fetch(url, {
                         cache: 'no-store',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'text/html'
+                            'Accept': 'text/html, */*'
                         },
-                        signal: abortController.signal
-                    });
-
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                    const html = await response.text();
-                    contentDiv.innerHTML = html;
-
-                    // مخفی کردن loading و نمایش محتوا
-                    const parent = contentDiv.parentElement;
-                    if (parent && typeof Alpine !== 'undefined') {
-                        // به‌روزرسانی Alpine state
-                        const alpineEl = parent.closest('[x-data]');
-                        if (alpineEl && alpineEl.__x) {
-                            alpineEl.__x.$data.loading = false;
+                        signal: currentAbortController.signal
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                         }
-                    }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // بررسی اینکه هنوز drawer باز است
+                        if (!isOpen) return;
 
-                    // Reinit Alpine برای محتوای جدید
-                    if (typeof Alpine !== 'undefined' && Alpine.initTree) {
-                        setTimeout(() => Alpine.initTree(contentDiv), 100);
-                    }
+                        // بررسی اینکه HTML خالی نیست
+                        if (!html || html.trim() === '') {
+                            throw new Error('Empty response');
+                        }
 
-                    console.log('✅ Profile content loaded successfully');
+                        content.innerHTML = html;
+                        console.log('✅ Profile loaded successfully');
 
-                } catch (error) {
-                    if (error.name !== 'AbortError') {
+                        // Reinit Alpine برای محتوای جدید
+                        if (typeof Alpine !== 'undefined' && Alpine.initTree) {
+                            setTimeout(() => Alpine.initTree(content), 50);
+                        }
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError') return;
+
                         console.error('❌ Profile load error:', error);
-                        contentDiv.innerHTML = `
-                    <div class="text-center text-rose-600 py-8">
-                        <div class="text-4xl mb-2">⚠️</div>
-                        <p class="font-bold">خطا در بارگذاری پروفایل</p>
-                        <p class="text-xs text-gray-500 mt-1">${error.message}</p>
-                        <button onclick="loadProfileContent('${url}')" 
-                            class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition">
-                            تلاش مجدد
-                        </button>
-                    </div>
-                `;
-                    }
-                }
+                        content.innerHTML = `
+                <div style="text-align: center; color: #dc2626; padding: 2rem 0;">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
+                    <p style="font-weight: bold; margin-bottom: 0.5rem;">خطا در بارگذاری پروفایل</p>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">${error.message}</p>
+                    <button onclick="window.openProfile('${url}')"
+                            style="padding: 0.5rem 1rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; font-weight: bold; cursor: pointer;">
+                        تلاش مجدد
+                    </button>
+                </div>
+            `;
+                    });
             };
 
             /**
-             * 🎯 بستن Profile Drawer
+             * 🌟 بستن Profile Drawer - تابع سراسری
              */
-            window.closeDrawer = function() {
+            window.closeGlobalProfileDrawer = function(restoreHistory = true) {
+                if (!isOpen) return;
+
                 console.log('🎯 Closing profile drawer');
 
-                // Dispatch event
-                window.dispatchEvent(new CustomEvent('profile-drawer-close'));
+                const drawer = document.getElementById('global-profile-drawer');
+                const panel = document.getElementById('global-drawer-panel');
 
-                // به‌روزرسانی Alpine state
-                const drawerEl = document.querySelector('[x-data*="profile-drawer"]');
-                if (drawerEl && drawerEl.__x) {
-                    drawerEl.__x.$data.show = false;
-                    drawerEl.__x.$data.loading = true;
-                }
+                if (!drawer || !panel) return;
 
-                // ریست body overflow (مهم برای دکمه همبرگری!)
-                document.body.classList.remove('no-scroll');
+                // انیمیشن بسته شدن
+                panel.style.transform = 'translateX(100%)';
+
+                // بعد از پایان انیمیشن، مخفی کن
+                setTimeout(() => {
+                    drawer.style.display = 'none';
+                    document.body.classList.remove('drawer-open');
+                    isOpen = false;
+
+                    // بازیابی موقعیت اسکرول
+                    window.scrollTo(0, scrollPosition);
+                }, 300);
 
                 // لغو درخواست در حال انتظار
-                if (abortController) {
-                    abortController.abort();
-                    abortController = null;
+                if (currentAbortController) {
+                    currentAbortController.abort();
+                    currentAbortController = null;
                 }
 
-                // پاک کردن محتوا
-                const contentDiv = document.getElementById('profile-drawer-content-html');
-                if (contentDiv) {
-                    contentDiv.innerHTML = '';
-                }
-
-                // بازگشت به URL اصلی
-                if (history.state && history.state.drawer) {
+                // بازگشت به URL قبلی
+                if (restoreHistory && history.state && history.state.drawerOpen) {
                     history.back();
                 }
             };
 
             /**
-             * 🔄 هندلر دکمه Back مرورگر
+             * 📱 دکمه Back موبایل - هندلر popstate
              */
             window.addEventListener('popstate', function(event) {
-                const drawerEl = document.querySelector('[x-data*="profile-drawer"]');
-                const isDrawerOpen = drawerEl && drawerEl.__x && drawerEl.__x.$data.show;
-
-                if (isDrawerOpen) {
-                    // drawer باز است - ببند بدون تغییر URL
-                    if (drawerEl.__x) {
-                        drawerEl.__x.$data.show = false;
-                        drawerEl.__x.$data.loading = true;
-                    }
-                    document.body.classList.remove('no-scroll');
-
-                    if (abortController) {
-                        abortController.abort();
-                        abortController = null;
-                    }
+                // اگر drawer باز است و کاربر Back زد، drawer را ببند
+                if (isOpen && (!event.state || !event.state.drawerOpen)) {
+                    closeGlobalProfileDrawer(false); // false = بدون تغییر URL (چون الان در popstate هستیم)
                 }
             });
 
             /**
-             * 🧹 Cleanup هنگام خروج از صفحه
+             * ⌨️ دکمه Escape
              */
-            window.addEventListener('beforeunload', function() {
-                document.body.classList.remove('no-scroll');
-                if (abortController) {
-                    abortController.abort();
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && isOpen) {
+                    closeGlobalProfileDrawer();
                 }
             });
 
@@ -666,14 +686,21 @@
              * 🧹 Cleanup هنگام HTMX navigation
              */
             document.body.addEventListener('htmx:beforeRequest', function() {
-                // اگر drawer باز بود، ببند
-                const drawerEl = document.querySelector('[x-data*="profile-drawer"]');
-                if (drawerEl && drawerEl.__x && drawerEl.__x.$data.show) {
-                    window.closeDrawer();
+                if (isOpen) {
+                    closeGlobalProfileDrawer(false);
                 }
             });
 
-            console.log('✅ Profile drawer initialized (global)');
+            /**
+             * 🧹 Cleanup هنگام خروج از صفحه
+             */
+            window.addEventListener('beforeunload', function() {
+                if (currentAbortController) {
+                    currentAbortController.abort();
+                }
+            });
+
+            console.log('✅ Global Profile Drawer initialized');
         })();
     </script>
 
