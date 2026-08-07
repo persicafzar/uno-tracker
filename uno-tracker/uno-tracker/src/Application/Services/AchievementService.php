@@ -22,62 +22,45 @@ class AchievementService
     }
 
     /**
-     * بررسی و به‌روزرسانی همه نشان‌های کاربر
-     * @return array نشان‌های تازه تکمیل شده
+     * بررسی و به‌روزرسانی نشان‌ها - 🆕 با فراخوانی titles در انتها
      */
     public function checkAndUpdateAchievements(int $userId): array
     {
-        $newlyUnlocked = [];
-
-        // گرفتن آمار کاربر
-        $stats = $this->getUserStats($userId);
-
-        // گرفتن همه نشان‌ها
         $achievements = $this->repo->findAllAchievements();
+        $unlocked = [];
+        $userStats = $this->getUserStats($userId);
 
         foreach ($achievements as $achievement) {
-            // اگر قبلاً تکمیل شده، رد کن
             if ($this->repo->isAchievementCompleted($userId, $achievement->id)) {
                 continue;
             }
 
-            // 🆕 اصلاح: استفاده از condition_type و condition_value
-            $conditionType = $achievement->condition_type ?? null;
-            $conditionValue = (int)($achievement->condition_value ?? 0);
+            $currentValue = $this->getCurrentValueForCondition($achievement->condition_type, $userId);
 
-            if (!$conditionType || $conditionValue <= 0) {
-                continue;
-            }
+            if ($currentValue >= $achievement->condition_value) {
+                $this->repo->completeUserAchievement($userId, $achievement->id, $currentValue);
+                $achievement->user_completed = true;
+                $achievement->user_progress = $currentValue;
+                $achievement->user_unlocked_at = date('Y-m-d H:i:s');
+                $unlocked[] = $achievement;
 
-            // محاسبه مقدار فعلی
-            $currentValue = $this->getCurrentValueForCondition($conditionType, $userId);
-
-            // به‌روزرسانی پیشرفت
-            if ($currentValue > 0) {
-                $this->updateProgress($userId, $achievement->id, min($currentValue, $conditionValue));
-            }
-
-            // بررسی تکمیل
-            if ($currentValue >= $conditionValue) {
-                // تکمیل نشان
-                $this->completeAchievement($userId, $achievement->id, $currentValue);
-
-                // دادن XP
-                $this->levelService->addXp($userId, $achievement->xp_reward, false);
-
-                // ارسال اعلان
-                $this->notificationService->notifyAchievementUnlocked(
-                    $userId,
-                    $achievement->name,
-                    $achievement->icon,
-                    $achievement->xp_reward
-                );
-
-                $newlyUnlocked[] = $achievement;
+                error_log("🏅 Achievement unlocked: {$achievement->name} for user {$userId}");
+            } else {
+                $this->repo->updateUserAchievementProgress($userId, $achievement->id, $currentValue);
             }
         }
 
-        return $newlyUnlocked;
+        // 🆕 فراخوانی titles بررسی هم انجام شود (backup)
+        // این کار باعث می‌شود حتی اگر در processGameEnd فراخوانی نشود،
+        // titles در checkAndUpdateAchievements بررسی شوند
+        try {
+            $gamificationService = new \Application\Services\GamificationService();
+            $gamificationService->checkAndUpdateTitles($userId);
+        } catch (\Throwable $e) {
+            error_log("⚠️ Error checking titles in checkAndUpdateAchievements: " . $e->getMessage());
+        }
+
+        return $unlocked;
     }
 
     /**

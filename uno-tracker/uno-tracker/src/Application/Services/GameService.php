@@ -469,7 +469,11 @@ class GameService
                     'recorded_at' => date('Y-m-d H:i:s'),
                     'source_user_id' => $refereeId, // 🆕 اضافه شد
                 ];
-
+                // 🆕 بررسی القاب بعد از ثبت دور (برای القاب مبتنی بر streak)
+                if ($winner->user_id) {
+                    $gamificationService = new \Application\Services\GamificationService();
+                    $gamificationService->checkAndUpdateTitles($winner->user_id);
+                }
                 return [
                     'success' => true,
                     'message' => 'دور با موفقیت ثبت شد',
@@ -818,11 +822,12 @@ class GameService
 
                 // 🆕 محاسبه و به‌روزرسانی XP برای همه بازیکنان
                 $scoringService = new ScoringService();
+                $gamificationService = new \Application\Services\GamificationService();
+                $statsService = new \Application\Services\UserStatsService();
 
                 foreach ($game->participants as $participant) {
                     if (!$participant->user_id) continue;
 
-                    // 🆕 استفاده از منطق جدید: عضو تیم برنده بودن
                     $isGameWinner = $game->isGameWinner($participant);
 
                     if ($isGameWinner) {
@@ -838,6 +843,19 @@ class GameService
                     }
 
                     $scoringService->updateUserXP($participant->user_id, $xp);
+
+                    // 🆕 بررسی و اعطای القاب بعد از پایان بازی (برای هر بازیکن)
+                    $titleResult = $gamificationService->checkAndUpdateTitles($participant->user_id);
+
+                    // 🆕 لاگ القاب جدید
+                    if (!empty($titleResult['new_titles'])) {
+                        foreach ($titleResult['new_titles'] as $newTitle) {
+                            log_message("🏆 NEW TITLE: User {$participant->user_id} unlocked '{$newTitle['name']}'");
+                        }
+                    }
+
+                    // 🆕 به‌روزرسانی کش leaderboard
+                    $statsService->refreshLeaderboardCache($participant->user_id);
                 }
 
                 // 🆕 به‌روزرسانی کش leaderboard برای همه شرکت‌کنندگان

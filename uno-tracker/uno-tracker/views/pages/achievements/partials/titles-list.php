@@ -2,32 +2,73 @@
 
 /**
  * لیست همه عناوین قابل کسب
+ * 
+ * 🆕 بهبودها:
+ * - پشتیبانی کامل از همه condition_type ها (شامل team_wins, solo_wins, team_games, solo_games)
+ * - محاسبه دقیق progress با پشتیبانی از برد تیمی
+ * - بهبود خوانایی و نگهداری کد
  */
 
-$db = \Core\Database::getInstance();
-$currentUserId = $userId ?? ($profile['user_id'] ?? $profile['id'] ?? 0);
+use Core\Database;
+
+$db = Database::getInstance();
+$currentUserId = $userId ?? ($profile['user_id'] ?? ($profile['id'] ?? 0));
+
 // 🆕 آمار فعلی کاربر - با پشتیبانی کامل از برد تیمی
 $userStats = $db->fetchOne(
     "SELECT 
         (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished') as total_games,
-        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+        (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
          WHERE gp.user_id = ? AND g.status = 'finished' 
          AND (
              (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
              OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id)
          )) as total_wins,
-        (SELECT best_streak FROM user_streaks WHERE user_id = ?) as best_streak,
-        (SELECT current_streak FROM user_streaks WHERE user_id = ?) as current_streak,
-        (SELECT COUNT(*) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+        (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.game_mode = 'solo' AND g.status = 'finished' 
+         AND g.winner_participant_id = gp.id) as solo_wins,
+        (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
          WHERE gp.user_id = ? AND g.game_mode = 'friendly' AND g.status = 'finished' 
          AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id) as team_wins,
+        (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.game_mode = 'solo' AND g.status = 'finished') as solo_games,
+        (SELECT COUNT(DISTINCT g.id) FROM games g JOIN game_participants gp ON g.id = gp.game_id 
+         WHERE gp.user_id = ? AND g.game_mode = 'friendly' AND g.status = 'finished') as team_games,
+        (SELECT best_streak FROM user_streaks WHERE user_id = ?) as best_streak,
+        (SELECT current_streak FROM user_streaks WHERE user_id = ?) as current_streak,
         (SELECT COALESCE(SUM(gp.total_score), 0) FROM games g JOIN game_participants gp ON g.id = gp.game_id WHERE gp.user_id = ? AND g.status = 'finished') as total_points
     ",
-    [$currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId, $currentUserId]
+    [
+        $currentUserId, // total_games
+        $currentUserId, // total_wins
+        $currentUserId, // solo_wins
+        $currentUserId, // team_wins
+        $currentUserId, // solo_games
+        $currentUserId, // team_games
+        $currentUserId, // best_streak
+        $currentUserId, // current_streak
+        $currentUserId  // total_points
+    ]
 );
 
-$allTitles = $db->fetchAll("SELECT * FROM titles WHERE is_active = 1 ORDER BY priority DESC");
+// 🆕 تبدیل به مقادیر عددی برای جلوگیری از null
+$stats = [
+    'total_games' => (int)($userStats['total_games'] ?? 0),
+    'total_wins' => (int)($userStats['total_wins'] ?? 0),
+    'solo_wins' => (int)($userStats['solo_wins'] ?? 0),
+    'team_wins' => (int)($userStats['team_wins'] ?? 0),
+    'solo_games' => (int)($userStats['solo_games'] ?? 0),
+    'team_games' => (int)($userStats['team_games'] ?? 0),
+    'best_streak' => (int)($userStats['best_streak'] ?? 0),
+    'current_streak' => (int)($userStats['current_streak'] ?? 0),
+    'win_streak' => (int)($userStats['current_streak'] ?? 0), // Alias
+    'total_points' => (int)($userStats['total_points'] ?? 0),
+];
 
+// گرفتن همه عناوین فعال
+$allTitles = $db->fetchAll("SELECT * FROM titles WHERE is_active = 1 ORDER BY priority DESC, bonus_points DESC");
+
+// گرفتن عنوان فعال فعلی کاربر
 $currentTitleInfo = $db->fetchOne(
     "SELECT t.id, t.name, t.icon, t.bonus_points, t.description
     FROM users u
@@ -36,12 +77,17 @@ $currentTitleInfo = $db->fetchOne(
     [$currentUserId]
 );
 
+// 🆕 برچسب‌های شرط با پشتیبانی کامل
 $conditionLabels = [
     'total_games' => 'تعداد بازی',
     'total_wins' => 'تعداد برد',
-    'win_streak' => 'زنجیره پیروزی فعلی',
-    'best_streak' => 'بهترین زنجیره پیروزی',
+    'solo_wins' => 'بردهای انفرادی',
     'team_wins' => 'بردهای تیمی',
+    'solo_games' => 'بازی‌های انفرادی',
+    'team_games' => 'بازی‌های تیمی',
+    'win_streak' => 'زنجیره پیروزی فعلی',
+    'current_streak' => 'زنجیره پیروزی فعلی',
+    'best_streak' => 'بهترین زنجیره پیروزی',
     'total_points' => 'امتیاز کل',
     'max_consecutive_wins_with_card' => 'برد متوالی با کارت',
 ];
@@ -90,16 +136,21 @@ $conditionLabels = [
             $condValue = (int) ($titleItem['condition_value'] ?? 0);
             $bonusPoints = (int) ($titleItem['bonus_points'] ?? 0);
 
-            $currentValue = 0;
-            if ($condType === 'total_games') $currentValue = (int)($userStats['total_games'] ?? 0);
-            elseif ($condType === 'total_wins') $currentValue = (int)($userStats['total_wins'] ?? 0);
-            elseif ($condType === 'best_streak') $currentValue = (int)($userStats['best_streak'] ?? 0);
-            elseif ($condType === 'current_streak') $currentValue = (int)($userStats['current_streak'] ?? 0);
-            elseif ($condType === 'team_wins') $currentValue = (int)($userStats['team_wins'] ?? 0);
-            elseif ($condType === 'total_points') $currentValue = (int)($userStats['total_points'] ?? 0);
+            // 🆕 گرفتن مقدار فعلی با پشتیبانی از همه condition_type ها
+            $currentValue = $stats[$condType] ?? 0;
 
-            $isUnlocked = $currentValue >= $condValue;
+            // برای condition_type های ناشناخته، مقدار 0 استفاده می‌شود
+            if (!array_key_exists($condType, $stats)) {
+                error_log("⚠️ Unknown condition_type in title {$titleItem['id']}: {$condType}");
+            }
+
+            $isUnlocked = $currentValue >= $condValue && $condValue > 0;
             $isCurrent = ($currentTitleInfo && $titleItem['id'] == $currentTitleInfo['id']);
+
+            // 🆕 محاسبه درصد پیشرفت (با جلوگیری از تقسیم بر صفر)
+            $progressPercentage = $condValue > 0
+                ? min(100, round(($currentValue / $condValue) * 100, 1))
+                : ($isUnlocked ? 100 : 0);
             ?>
 
             <div class="relative rounded-2xl p-4 border-2 transition-all hover:shadow-xl hover:scale-[1.02]
@@ -135,13 +186,13 @@ $conditionLabels = [
                                     📋 <?= htmlspecialchars($conditionLabels[$condType] ?? $condType) ?>
                                 </span>
                                 <span class="text-[10px] font-black <?= $isUnlocked ? 'text-green-600' : 'text-gray-500' ?>">
-                                    <?= $currentValue ?> / <?= $condValue ?>
+                                    <?= number_format($currentValue) ?> / <?= number_format($condValue) ?>
                                 </span>
                             </div>
 
                             <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                                 <div class="h-full rounded-full transition-all duration-500"
-                                    style="width: <?= min(100, ($currentValue / max(1, $condValue)) * 100) ?>%; background: <?= $isUnlocked ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #6366f1, #8b5cf6)' ?>">
+                                    style="width: <?= $progressPercentage ?>%; background: <?= $isUnlocked ? 'linear-gradient(90deg, #22c55e, #16a34a)' : 'linear-gradient(90deg, #6366f1, #8b5cf6)' ?>">
                                 </div>
                             </div>
 
