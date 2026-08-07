@@ -804,8 +804,9 @@
             pointer-events: auto !important;
         }
     </style>
+
     <!-- ========================================== -->
-    <!-- 🎯 GLOBAL DRAWER SCRIPT (نسخه اصلاح شده) -->
+    <!-- 🎯 GLOBAL DRAWER SCRIPT (نسخه نهایی - بدون رفرش) -->
     <!-- ========================================== -->
     <script>
         (function() {
@@ -814,30 +815,26 @@
             let currentAbortController = null;
             let scrollPosition = 0;
             let isOpen = false;
-            let drawerHistoryState = null; // 🆕 ذخیره state drawer
+            let isClosingProgrammatically = false; // 🆕 flag برای بستن برنامه‌ای
 
             /**
              * 🌟 باز کردن Profile Drawer
              */
             window.openProfile = function(url) {
                 if (isOpen) {
-                    // اگر قبلاً باز است، فقط محتوا را refresh کن
                     loadProfileContent(url);
                     return;
                 }
 
                 console.log('🎯 Opening profile drawer:', url);
 
-                // لغو درخواست قبلی
                 if (currentAbortController) {
                     currentAbortController.abort();
                 }
                 currentAbortController = new AbortController();
 
-                // ذخیره موقعیت اسکرول
                 scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
 
-                // باز کردن drawer
                 const drawer = document.getElementById('global-profile-drawer');
                 const panel = document.getElementById('global-drawer-panel');
                 const content = document.getElementById('global-drawer-content');
@@ -856,7 +853,6 @@
                     panel.style.transform = 'translateX(0)';
                 });
 
-                // Loading state
                 content.innerHTML = `
             <div style="text-align: center; color: #6b7280; padding: 3rem 0;">
                 <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #6366f1; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem;"></div>
@@ -864,19 +860,17 @@
             </div>
         `;
 
-                // 🆕 استفاده از replaceState به جای pushState برای جلوگیری از انباشت
+                // 🆕 pushState برای ایجاد entry در history (برای دکمه Back موبایل)
                 try {
-                    const drawerUrl = new URL(url, window.location.origin).href;
-                    drawerHistoryState = {
+                    const drawerState = {
                         drawerOpen: true,
-                        url: drawerUrl,
+                        url: url,
                         originalUrl: window.location.href,
                         timestamp: Date.now()
                     };
-                    // 🎯 مهم: replaceState به جای pushState
-                    history.replaceState(drawerHistoryState, '', window.location.href);
+                    history.pushState(drawerState, '', window.location.href);
                 } catch (e) {
-                    console.warn('History replaceState failed:', e);
+                    console.warn('History pushState failed:', e);
                 }
 
                 loadProfileContent(url);
@@ -896,60 +890,56 @@
                             'X-Requested-With': 'XMLHttpRequest',
                             'Accept': 'text/html, */*'
                         },
-                        signal: currentAbortController.signal
+                        signal: currentAbortController ? currentAbortController.signal : undefined
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                     const html = await response.text();
-
                     if (!isOpen) return;
-
-                    if (!html || html.trim() === '') {
-                        throw new Error('Empty response');
-                    }
+                    if (!html || html.trim() === '') throw new Error('Empty response');
 
                     content.innerHTML = html;
 
                     if (typeof Alpine !== 'undefined' && Alpine.initTree) {
                         setTimeout(() => Alpine.initTree(content), 50);
                     }
-
-                    console.log('✅ Profile loaded successfully');
-
                 } catch (error) {
                     if (error.name === 'AbortError') return;
-
                     console.error('❌ Profile load error:', error);
-                    content.innerHTML = `
-                <div style="text-align: center; color: #dc2626; padding: 2rem 0;">
-                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
-                    <p style="font-weight: bold; margin-bottom: 0.5rem;">خطا در بارگذاری پروفایل</p>
-                    <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">${error.message}</p>
-                    <button onclick="window.openProfile('${url}')"
-                            style="padding: 0.5rem 1rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; font-weight: bold; cursor: pointer;">
-                        تلاش مجدد
-                    </button>
-                </div>
-            `;
+                    if (content && isOpen) {
+                        content.innerHTML = `
+                    <div style="text-align: center; color: #dc2626; padding: 2rem 0;">
+                        <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚠️</div>
+                        <p style="font-weight: bold;">خطا در بارگذاری پروفایل</p>
+                        <button onclick="window.openProfile('${url}')"
+                                style="margin-top: 1rem; padding: 0.5rem 1rem; background: #6366f1; color: white; border: none; border-radius: 0.5rem; cursor: pointer;">
+                            تلاش مجدد
+                        </button>
+                    </div>
+                `;
+                    }
                 }
             }
 
             /**
-             * 🌟 بستن Profile Drawer - 🆕 بدون استفاده از history.back()
+             * 🌟 بستن Profile Drawer
+             * 
+             * @param {boolean} goBack - آیا باید history.back() فراخوانی شود؟
+             *   - true: وقتی خودمان Close/Backdrop را کلیک می‌کنیم
+             *   - false: وقتی popstate (دکمه Back موبایل) fire شده
              */
-            window.closeGlobalProfileDrawer = function() {
-                if (!isOpen) {
-                    console.log('⚠️ Drawer already closed');
-                    return;
-                }
+            window.closeGlobalProfileDrawer = function(goBack = true) {
+                if (!isOpen) return;
 
-                console.log('🎯 Closing profile drawer');
+                console.log('🎯 Closing drawer (goBack:', goBack, ')');
+
+                // 🆕 مهم: فوراً isOpen را false کن (قبل از هر کاری)
+                isOpen = false;
 
                 const drawer = document.getElementById('global-profile-drawer');
                 const panel = document.getElementById('global-drawer-panel');
+                const content = document.getElementById('global-drawer-content');
 
                 if (!drawer || !panel) return;
 
@@ -959,45 +949,44 @@
                 setTimeout(() => {
                     drawer.style.display = 'none';
                     document.body.classList.remove('drawer-open');
-                    isOpen = false;
 
-                    // 🆕 بازیابی موقعیت اسکرول
-                    window.scrollTo(0, scrollPosition);
-
-                    // 🆕 پاک کردن state drawer بدون تغییر URL
-                    drawerHistoryState = null;
-
-                    // 🆕 لغو درخواست در حال انتظار
                     if (currentAbortController) {
                         currentAbortController.abort();
                         currentAbortController = null;
                     }
 
-                    // 🆕 پاک کردن محتوای drawer
-                    const content = document.getElementById('global-drawer-content');
-                    if (content) {
-                        content.innerHTML = '';
-                    }
-
-                    console.log('✅ Drawer closed successfully');
+                    if (content) content.innerHTML = '';
+                    window.scrollTo(0, scrollPosition);
                 }, 300);
+
+                // 🆕 اگر خودمان Close را زده‌ایم، باید entry اضافی history را پاک کنیم
+                if (goBack && history.state && history.state.drawerOpen) {
+                    isClosingProgrammatically = true;
+                    history.back();
+                    // ریست flag بعد از اتمام popstate
+                    setTimeout(() => {
+                        isClosingProgrammatically = false;
+                    }, 600);
+                }
             };
 
             /**
-             * 📱 دکمه Back موبایل - هندلر popstate
+             * 📱 دکمه Back موبایل / مرورگر
              */
             window.addEventListener('popstate', function(event) {
-                // 🆕 فقط اگر drawer باز است و state آن موجود است، ببند
-                if (isOpen && drawerHistoryState) {
-                    closeGlobalProfileDrawer();
-                    // 🆕 جلوگیری از تغییر URL (چون از replaceState استفاده کردیم)
-                    event.preventDefault();
+                console.log('🔄 popstate:', event.state, 'isOpen:', isOpen, 'programmatic:', isClosingProgrammatically);
+
+                // 🆕 اگر خودمان history.back() را فراخوانی کرده‌ایم، هیچ کاری نکن
+                if (isClosingProgrammatically) {
+                    console.log('⏭️ Programmatic back, skipping');
                     return;
                 }
 
-                // 🆕 اگر drawer باز نیست اما state drawer در history هست، آن را پاک کن
-                if (!isOpen && event.state && event.state.drawerOpen) {
-                    drawerHistoryState = null;
+                // 🆕 اگر drawer باز است و کاربر Back زده، فقط drawer را ببند
+                if (isOpen) {
+                    console.log('📱 User pressed Back, closing drawer');
+                    closeGlobalProfileDrawer(false); // false = بدون history.back()
+                    return;
                 }
             });
 
@@ -1006,32 +995,21 @@
              */
             document.addEventListener('keydown', function(event) {
                 if (event.key === 'Escape' && isOpen) {
-                    closeGlobalProfileDrawer();
+                    closeGlobalProfileDrawer(true);
                 }
             });
 
             /**
-             * 🧹 Cleanup هنگام HTMX navigation
+             * 🧹 Cleanup هنگام HTMX
              */
             document.body.addEventListener('htmx:beforeRequest', function() {
                 if (isOpen) {
-                    closeGlobalProfileDrawer();
+                    closeGlobalProfileDrawer(false);
                 }
             });
 
             /**
-             * 🧹 Cleanup هنگام HTMX swap (مهم!)
-             */
-            document.body.addEventListener('htmx:afterSwap', function() {
-                // 🆕 اگر بعد از HTMX swap drawer باز بود، ببند
-                if (isOpen) {
-                    console.log('🧹 Closing drawer after HTMX swap');
-                    closeGlobalProfileDrawer();
-                }
-            });
-
-            /**
-             * 🧹 Cleanup هنگام خروج از صفحه
+             * 🧹 Cleanup هنگام خروج
              */
             window.addEventListener('beforeunload', function() {
                 document.body.classList.remove('drawer-open');
@@ -1040,7 +1018,9 @@
                 }
             });
 
-            // 🆕 اضافه کردن event listener برای دکمه‌های Close و Backdrop
+            /**
+             * 🖱️ Event listeners برای Close و Backdrop
+             */
             document.addEventListener('DOMContentLoaded', function() {
                 const closeBtn = document.getElementById('drawer-close-btn');
                 const backdrop = document.getElementById('global-drawer-backdrop');
@@ -1049,13 +1029,11 @@
                     closeBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        closeGlobalProfileDrawer();
+                        closeGlobalProfileDrawer(true);
                     });
-
-                    closeBtn.addEventListener('touchstart', function(e) {
+                    closeBtn.addEventListener('touchend', function(e) {
                         e.preventDefault();
-                        e.stopPropagation();
-                        closeGlobalProfileDrawer();
+                        closeGlobalProfileDrawer(true);
                     }, {
                         passive: false
                     });
@@ -1064,13 +1042,18 @@
                 if (backdrop) {
                     backdrop.addEventListener('click', function(e) {
                         e.preventDefault();
-                        e.stopPropagation();
-                        closeGlobalProfileDrawer();
+                        closeGlobalProfileDrawer(true);
+                    });
+                    backdrop.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        closeGlobalProfileDrawer(true);
+                    }, {
+                        passive: false
                     });
                 }
             });
 
-            console.log('✅ Global Profile Drawer initialized (fixed version)');
+            console.log('✅ Global Profile Drawer initialized (final - no refresh)');
         })();
     </script>
 
