@@ -79,32 +79,40 @@ class ProfileController
         $profile['day_of_week_stats'] = $statsService->getDayOfWeekStats($userId);
         $profile['card_stats'] = $statsService->getCardUsageStats($userId);
 
-        // گرفتن همه بازی‌ها با Pagination
+        // گرفتن همه بازی‌ها با Pagination - 🆕 اصلاح شده برای پشتیبانی از تیمی
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
 
         $allGames = $this->db->fetchAll(
             "SELECT
-                g.id,
-                g.name,
-                g.game_mode,
-                g.target_wins,
-                g.status,
-                g.created_at,
-                g.finished_at,
-                g.winner_participant_id,
-                gp.wins_count,
-                gp.total_score,
-                gp.id as participant_id,
-                (SELECT COUNT(*) FROM game_participants gp2 WHERE gp2.game_id = g.id) as total_players,
-                (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams,
-                (g.winner_participant_id = gp.id) as is_winner
-             FROM games g
-             INNER JOIN game_participants gp ON g.id = gp.game_id
-             WHERE gp.user_id = ?
-             ORDER BY g.created_at DESC
-             LIMIT ? OFFSET ?",
+        g.id,
+        g.name,
+        g.game_mode,
+        g.target_wins,
+        g.status,
+        g.created_at,
+        g.finished_at,
+        g.winner_participant_id,
+        g.winner_team_id,
+        gp.wins_count,
+        gp.total_score,
+        gp.id as participant_id,
+        gp.team_id,
+        (SELECT COUNT(*) FROM game_participants gp2 WHERE gp2.game_id = g.id) as total_players,
+        (SELECT COUNT(*) FROM teams t WHERE t.game_id = g.id) as total_teams,
+        -- 🆕 محاسبه صحیح برنده با پشتیبانی از تیمی
+        (CASE 
+            WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+            WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                 AND g.winner_team_id = gp.team_id THEN 1
+            ELSE 0 
+        END) as is_winner
+     FROM games g
+     INNER JOIN game_participants gp ON g.id = gp.game_id
+     WHERE gp.user_id = ?
+     ORDER BY g.created_at DESC
+     LIMIT ? OFFSET ?",
             [$userId, $perPage + 1, $offset]
         );
 
@@ -115,6 +123,8 @@ class ProfileController
         foreach ($history as &$game) {
             if (!isset($game['is_winner'])) {
                 $game['is_winner'] = false;
+            } else {
+                $game['is_winner'] = (bool) $game['is_winner'];
             }
         }
 

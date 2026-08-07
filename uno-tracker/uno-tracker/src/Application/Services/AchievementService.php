@@ -81,20 +81,32 @@ class AchievementService
     }
 
     /**
-     * گرفتن آمار کاربر
+     * گرفتن آمار کاربر - 🆕 اصلاح شده برای پشتیبانی از تیمی
      */
     private function getUserStats(int $userId): array
     {
         $stats = $this->db->fetchOne(
             "SELECT
-                COUNT(DISTINCT gp.game_id) as total_games,
-                SUM(CASE WHEN g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as total_wins,
-                SUM(gp.total_score) as total_points,
-                SUM(CASE WHEN g.game_mode = 'friendly' THEN 1 ELSE 0 END) as team_games,
-                SUM(CASE WHEN g.game_mode = 'friendly' AND g.winner_participant_id = gp.id THEN 1 ELSE 0 END) as team_wins
-             FROM game_participants gp
-             JOIN games g ON gp.game_id = g.id
-             WHERE gp.user_id = ?",
+            COUNT(DISTINCT gp.game_id) as total_games,
+            -- 🆕 محاسبه صحیح کل بردها (شامل Solo و Team)
+            SUM(CASE 
+                WHEN g.game_mode = 'solo' AND g.winner_participant_id = gp.id THEN 1
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0 
+            END) as total_wins,
+            SUM(gp.total_score) as total_points,
+            SUM(CASE WHEN g.game_mode = 'friendly' THEN 1 ELSE 0 END) as team_games,
+            -- 🆕 محاسبه صحیح بردهای تیمی
+            SUM(CASE 
+                WHEN g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                     AND g.winner_team_id = gp.team_id THEN 1
+                ELSE 0 
+            END) as team_wins
+         FROM game_participants gp
+         JOIN games g ON gp.game_id = g.id
+         WHERE gp.user_id = ?
+         AND g.status = 'finished'",
             [$userId]
         );
 

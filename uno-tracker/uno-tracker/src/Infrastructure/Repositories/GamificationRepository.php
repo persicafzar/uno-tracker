@@ -454,8 +454,9 @@ class GamificationRepository
     // آمار کلی کاربر (برای بررسی شرایط)
     // ============================================
 
+
     /**
-     * گرفتن آمار کلی کاربر - 🆕 با پشتیبانی کامل از برد تیمی
+     * گرفتن آمار کلی کاربر - 🆕 اصلاح شده برای پشتیبانی از تیمی
      */
     public function getUserStats(int $userId): array
     {
@@ -477,7 +478,8 @@ class GamificationRepository
          AND g.status = 'finished'
          AND (
              (g.game_mode = 'solo' AND g.winner_participant_id = gp.id)
-             OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL AND g.winner_team_id = gp.team_id)
+             OR (g.game_mode = 'friendly' AND g.winner_team_id IS NOT NULL 
+                 AND g.winner_team_id = gp.team_id)
          )",
             [$userId]
         );
@@ -515,27 +517,15 @@ class GamificationRepository
             [$userId]
         );
 
-        // 🆕 بردهای انفرادی
-        $soloWins = $this->db->fetchOne(
-            "SELECT COUNT(DISTINCT g.id) as count 
-         FROM games g 
-         JOIN game_participants gp ON g.id = gp.game_id 
-         WHERE gp.user_id = ? 
-         AND g.game_mode = 'solo'
-         AND g.status = 'finished'
-         AND g.winner_participant_id = gp.id",
-            [$userId]
-        );
-
         return [
             'total_games' => (int)($totalGames['count'] ?? 0),
             'total_wins' => (int)($totalWins['count'] ?? 0),
             'total_points' => (int)($totalPoints['total'] ?? 0),
             'team_games' => (int)($teamGames['count'] ?? 0),
             'team_wins' => (int)($teamWins['count'] ?? 0),
-            'solo_wins' => (int)($soloWins['count'] ?? 0),
         ];
     }
+
         // ============================================
     // 🆕 مدیریت سطوح (Player Levels)
     // ============================================
