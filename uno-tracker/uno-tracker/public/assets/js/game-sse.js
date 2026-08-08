@@ -1,9 +1,12 @@
 /**
- * 📡 Game SSE - مدیریت Real-time و Notifications
- * 🎵 نسخه نهایی با پشتیبانی از playForEvent برای خواندن تنظیمات صدا از دیتابیس
+ * 📡 Game SSE - نسخه نهایی با رفع خطای Swal
+ *
+ * 🆕 اصلاحات:
+ * - رفع TypeError: Swal.fire(...).catch is not a function
+ * - افزودن round_undone به event types
+ * - بهبود error handling
  */
 
-// استفاده از var برای جلوگیری از خطای تکرار
 if (typeof SSE_CONFIG === "undefined") {
   var SSE_CONFIG = {
     gameId: window.GAME_CONFIG?.gameId || 0,
@@ -41,12 +44,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (SSE_CONFIG.gameId > 0 && window.SSE) {
     console.log("🔌 Connecting to SSE for game #" + SSE_CONFIG.gameId);
-
     const sseUrl = (window.BASE_URL || "") + "/sse/game/" + SSE_CONFIG.gameId;
     console.log("🌐 SSE URL:", sseUrl);
 
     window.SSE.connect("game_" + SSE_CONFIG.gameId, sseUrl);
 
+    // 🆕 همه event types معتبر
     const eventTypes = [
       "game_started",
       "round_recorded",
@@ -70,29 +73,25 @@ document.addEventListener("DOMContentLoaded", function () {
     window.SSE.startHeartbeat(heartbeatUrl);
   } else {
     console.warn("⚠️ SSE not available or gameId not set");
-    console.warn("SSE_CONFIG.gameId:", SSE_CONFIG.gameId);
-    console.warn("window.SSE:", window.SSE);
   }
 });
 
-/**
- * 🆕 تشخیص وضعیت کاربر در یک رویداد (با پشتیبانی تیمی)
- */
+// ═══════════════════════════════════════════════════════
+// 👤 User Role Detection
+// ═══════════════════════════════════════════════════════
+
 function getUserRoleInEvent(eventType, data) {
   const userId = SSE_CONFIG.currentUserId;
   const currentParticipant = GAME_PARTICIPANTS.find(
     (p) => p.user_id === userId,
   );
 
-  if (!currentParticipant) {
-    return "spectator";
-  }
+  if (!currentParticipant) return "spectator";
 
   switch (eventType) {
     case "round_recorded": {
       const winnerId = data.winner?.participant_id || data.winner?.id;
       const winnerUserId = data.winner?.id;
-
       const winnerParticipant = GAME_PARTICIPANTS.find(
         (p) => p.id === winnerId || p.user_id === winnerUserId,
       );
@@ -103,7 +102,6 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "round_winner";
       }
-
       if (
         winnerParticipant?.team_id &&
         currentParticipant.team_id &&
@@ -111,7 +109,6 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "round_winner";
       }
-
       return "round_loser";
     }
 
@@ -121,7 +118,6 @@ function getUserRoleInEvent(eventType, data) {
     case "game_finished": {
       const winnerId = data.winner?.participant_id || data.winner?.id;
       const winnerUserId = data.winner?.id;
-
       const winnerParticipant = GAME_PARTICIPANTS.find(
         (p) => p.id === winnerId || p.user_id === winnerUserId,
       );
@@ -132,7 +128,6 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "game_winner";
       }
-
       if (
         winnerParticipant?.team_id &&
         currentParticipant.team_id &&
@@ -140,7 +135,6 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "game_winner";
       }
-
       return "game_loser";
     }
 
@@ -155,9 +149,10 @@ function getUserRoleInEvent(eventType, data) {
   }
 }
 
-/**
- * 🎨 دریافت کلاس CSS
- */
+// ═══════════════════════════════════════════════════════
+// 🎨 UI Helpers
+// ═══════════════════════════════════════════════════════
+
 function getNotificationClass(userRole) {
   const classMap = {
     game_winner: "notification-game-win",
@@ -171,51 +166,57 @@ function getNotificationClass(userRole) {
   return classMap[userRole] || "notification-default";
 }
 
-/**
- * 🎵 پخش صدا - نسخه هوشمند با پشتیبانی از playForEvent
- *
- * این تابع با اولویت زیر کار می‌کند:
- * 1. اگر playForEvent وجود داشت، از تنظیمات دیتابیس استفاده می‌کند
- * 2. در غیر این صورت، از متدهای قدیمی (playGameStart و...) استفاده می‌کند
- */
-/**
- * 🎵 پخش صدا - نسخه هوشمند با پشتیبانی از رویدادهای شخصی‌سازی‌شده
- */
+function getTimerDuration(userRole) {
+  const durationMap = {
+    game_winner: 5000,
+    game_loser: 4000,
+    round_winner: 3500,
+    round_loser: 3500,
+    participant: 3000,
+    spectator: 2500,
+    neutral: 2500,
+  };
+  return durationMap[userRole] || 2500;
+}
+
+// ═══════════════════════════════════════════════════════
+// 🎵 Sound Management
+// ═══════════════════════════════════════════════════════
+
 function playAppropriateSound(eventType, userRole, eventData) {
-  if (!window.SoundManager) return;
+  if (!window.SoundManager) {
+    console.warn("⚠️ SoundManager not loaded yet");
+    return;
+  }
 
   // 🎯 اولویت ۱: استفاده از playForEvent (تنظیمات دیتابیس)
   if (typeof window.SoundManager.playForEvent === "function") {
-    // 🆕 تعیین رویداد دقیق بر اساس userRole
     let actualEvent = eventType;
 
     // 🆕 برای round_recorded، بر اساس userRole تصمیم بگیر
     if (eventType === "round_recorded") {
       if (userRole === "round_winner") {
-        actualEvent = "round_winner"; // 🆕 رویداد شخصی‌سازی‌شده
+        actualEvent = "round_winner";
       } else if (userRole === "round_loser") {
-        actualEvent = "round_loser"; // 🆕 رویداد شخصی‌سازی‌شده
+        actualEvent = "round_loser";
       }
-      // در غیر این صورت (spectator)، همان round_recorded باقی می‌ماند
     }
 
     // 🆕 برای game_finished، بر اساس userRole تصمیم بگیر
     if (eventType === "game_finished") {
       if (userRole === "game_winner") {
-        actualEvent = "game_winner"; // 🆕 رویداد شخصی‌سازی‌شده
-        showConfetti(); // 🆕 جلوه بصری
+        actualEvent = "game_winner";
+        showConfetti();
       } else if (userRole === "game_loser") {
-        actualEvent = "game_loser"; // 🆕 رویداد شخصی‌سازی‌شده
+        actualEvent = "game_loser";
       }
     }
 
     // ساخت data غنی
-    const enrichedData = { ...eventData };
-
+    const enrichedData = { ...(eventData || {}) };
     if (eventType === "game_status_changed" && eventData?.status) {
       enrichedData.status = eventData.status;
     }
-
     enrichedData.user_role = userRole;
     enrichedData.is_winner =
       userRole === "round_winner" || userRole === "game_winner";
@@ -224,18 +225,17 @@ function playAppropriateSound(eventType, userRole, eventData) {
       `🎵 Playing sound for event: ${actualEvent} (original: ${eventType}, role: ${userRole})`,
       enrichedData,
     );
+
     window.SoundManager.playForEvent(actualEvent, enrichedData);
     return;
   }
 
   // 🎯 اولویت ۲: Fallback به متدهای قدیمی
   console.log(`⚠️ playForEvent not available, using legacy methods`);
-
   switch (eventType) {
     case "game_started":
       window.SoundManager.playGameStart();
       break;
-
     case "round_recorded":
       if (userRole === "round_winner") {
         window.SoundManager.playRoundWin();
@@ -245,11 +245,9 @@ function playAppropriateSound(eventType, userRole, eventData) {
         window.SoundManager.playRoundRecorded();
       }
       break;
-
     case "round_undone":
       window.SoundManager.playDefault();
       break;
-
     case "game_finished":
       if (userRole === "game_winner") {
         window.SoundManager.playGameWin();
@@ -258,7 +256,6 @@ function playAppropriateSound(eventType, userRole, eventData) {
         window.SoundManager.playRoundLose();
       }
       break;
-
     case "game_status_changed":
       if (eventData?.status === "paused") {
         window.SoundManager.playGamePause();
@@ -268,14 +265,11 @@ function playAppropriateSound(eventType, userRole, eventData) {
         window.SoundManager.playDefault();
       }
       break;
-
     default:
       window.SoundManager.playDefault();
   }
 }
-/**
- * 🎊 افکت Confetti
- */
+
 function showConfetti() {
   const colors = [
     "#f59e0b",
@@ -302,9 +296,10 @@ function showConfetti() {
   setTimeout(() => container.remove(), 5000);
 }
 
-/**
- * 📨 Handler رویدادهای SSE - نسخه نهایی با رفع مشکل source_user_id
- */
+// ═══════════════════════════════════════════════════════
+// 📨 SSE Event Handler
+// ═══════════════════════════════════════════════════════
+
 function handleSSEEvent(eventType, data) {
   console.log(`📨 SSE Event: ${eventType}`, data);
 
@@ -343,9 +338,10 @@ function handleSSEEvent(eventType, data) {
   scheduleReload(eventType, data);
 }
 
-/**
- * 🎨 نمایش Notification - نسخه نهایی
- */
+// ═══════════════════════════════════════════════════════
+// 🎨 Notification UI - 🆕 رفع خطای .catch
+// ═══════════════════════════════════════════════════════
+
 function showCustomNotification(eventType, data, userRole) {
   let title = "";
 
@@ -429,73 +425,62 @@ function showCustomNotification(eventType, data, userRole) {
 
   if (!title || typeof Swal === "undefined") return;
 
-  // 🎯 بستن Swal های قبلی (خیلی مهم!)
-  if (typeof Swal !== "undefined" && Swal.isVisible()) {
+  if (Swal.isVisible()) {
     Swal.close();
-  }
-
-  // 🎯 Cleanup قبل از نمایش جدید
-  if (typeof cleanupSwalContainers === "function") {
-    cleanupSwalContainers();
   }
 
   const customClass = getNotificationClass(userRole);
   const isGameWinner = userRole === "game_winner";
   const timerDuration = getTimerDuration(userRole);
 
-  // 🎯 استفاده از smartSwal یا showToast
-  if (typeof showToast === "function" && !isGameWinner) {
-    // 🎯 Toast ساده با cleanup خودکار
-    const iconMap = {
-      game_winner: "success",
-      game_loser: "error",
-      round_winner: "success",
-      round_loser: "error",
-      participant: "info",
-      spectator: "info",
-      neutral: "info",
-    };
+  const swalConfig = {
+    toast: !isGameWinner,
+    position: isGameWinner ? "center" : "top-end",
+    title: title,
+    showConfirmButton: isGameWinner,
+    confirmButtonText: isGameWinner ? "🎉 عالی!" : undefined,
+    confirmButtonColor: "#f59e0b",
+    showCloseButton: !isGameWinner,
+    timer: isGameWinner ? 5000 : timerDuration,
+    timerProgressBar: !isGameWinner,
+    customClass: {
+      popup: `notification-custom ${customClass}`,
+    },
+  };
 
-    showToast(title, iconMap[userRole] || "info", timerDuration);
-    return;
-  }
+  // 🆕 رفع خطای .catch با استفاده از try/catch و Promise صحیح
+  try {
+    const resultPromise = Swal.fire(swalConfig);
 
-  // 🎯 Fallback به Swal معمولی (برای game_winner که وسط صفحه است)
-  if (typeof Swal !== "undefined") {
-    Swal.fire({
-      toast: !isGameWinner,
-      position: isGameWinner ? "center" : "top-end",
-      title: title,
-      showConfirmButton: isGameWinner,
-      confirmButtonText: isGameWinner ? "🎉 عالی!" : undefined,
-      confirmButtonColor: "#f59e0b",
-      showCloseButton: !isGameWinner,
-      timer: isGameWinner ? 5000 : timerDuration,
-      timerProgressBar: !isGameWinner,
-      // 🎯 مهم: backdrop را برای toast حذف کن
-      backdrop: isGameWinner ? true : false,
-      grow: !isGameWinner ? "column" : false,
-      customClass: {
-        popup: `notification-custom ${customClass}`,
-        container: isGameWinner
-          ? "swal2-center-container"
-          : "swal2-toast-container",
-      },
-      didClose: function () {
-        // 🎯 Cleanup بعد از بسته شدن
-        setTimeout(() => {
-          if (typeof cleanupSwalContainers === "function") {
-            cleanupSwalContainers();
+    // 🆕 چک اینکه آیا resultPromise یک Promise واقعی است
+    if (resultPromise && typeof resultPromise.then === "function") {
+      resultPromise
+        .then((result) => {
+          if (result.isConfirmed) {
+            console.log('✅ User clicked "عالی!"');
+          } else if (result.dismiss === Swal.DismissReason.timer) {
+            console.log("⏰ Auto-closed by timer");
+          } else if (result.dismiss === Swal.DismissReason.close) {
+            console.log("❌ User clicked close");
+          } else if (result.dismiss === Swal.DismissReason.esc) {
+            console.log("⌨️ User pressed Escape");
           }
-        }, 100);
-      },
-    });
+        })
+        .catch((err) => {
+          console.warn("⚠️ Swal error (caught):", err);
+        });
+    } else {
+      console.warn("⚠️ Swal.fire did not return a Promise");
+    }
+  } catch (err) {
+    console.warn("⚠️ Swal error (try/catch):", err);
   }
 }
 
-/**
- * ⏱️ Debounce Reload
- */
+// ═══════════════════════════════════════════════════════
+// 🔄 Reload Management
+// ═══════════════════════════════════════════════════════
+
 function scheduleReload(eventType, data) {
   const now = Date.now();
   const timeSinceLastReload = now - SSE_CONFIG.lastReloadTime;
@@ -513,13 +498,9 @@ function scheduleReload(eventType, data) {
   }
 }
 
-/**
- * 🔄 Reload با HTMX - نسخه بهبودیافته با هدرها و خطاگیری
- */
 function performReload(eventType) {
   SSE_CONFIG.lastReloadTime = Date.now();
   SSE_CONFIG.pendingReload = false;
-
   if (SSE_CONFIG.reloadTimer) {
     clearTimeout(SSE_CONFIG.reloadTimer);
     SSE_CONFIG.reloadTimer = null;
@@ -543,7 +524,6 @@ function performReload(eventType) {
         const content = document.getElementById("game-page-content");
         if (content) {
           htmx.process(content);
-          // پس از reload، تنظیمات بازی را دوباره اعمال کن
           if (window.GAME_CONFIG) {
             SSE_CONFIG.isReferee =
               window.GAME_CONFIG.isReferee ?? SSE_CONFIG.isReferee;
@@ -553,16 +533,13 @@ function performReload(eventType) {
       })
       .catch((error) => {
         console.error("❌ HTMX reload failed:", error);
-        location.reload(); // fallback
+        location.reload();
       });
   } else {
     location.reload();
   }
 }
 
-/**
- * 🏷️ علامت‌گذاری عملیات خود کاربر
- */
 function markSelfAction(eventType) {
   SSE_CONFIG.selfActions.add(eventType);
   setTimeout(() => {

@@ -322,69 +322,36 @@
             pointer-events: none !important;
             transition: all 0.3s ease-out !important;
         }
+
+        /* 🆕 جایگزین border برای Swal */
+        .swal2-notification-border {
+            border: 1px solid #6366f1 !important;
+            border-radius: 0.75rem !important;
+        }
     </style>
 
     <?php
     // 🎵 بارگذاری تنظیمات صدای SSE
+    // 🎵 بارگذاری تنظیمات صدای SSE
     $sseSoundConfig = [];
+    $soundFiles = ['default' => '/assets/sounds/default.mp3'];
+
     try {
         $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
         $rawConfig = $settingsRepo->get('sse_sound_settings', []);
 
-        $sseSoundConfig = $rawConfig;
-        $maxAttempts = 5;
-        $attempt = 0;
-        while (is_string($sseSoundConfig) && $attempt < $maxAttempts) {
-            $decoded = json_decode($sseSoundConfig, true);
+        // Decode JSON
+        if (is_string($rawConfig)) {
+            $decoded = json_decode($rawConfig, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 $sseSoundConfig = $decoded;
-            } else {
-                break;
             }
-            $attempt++;
+        } elseif (is_array($rawConfig)) {
+            $sseSoundConfig = $rawConfig;
         }
 
-        if (!is_array($sseSoundConfig) || empty($sseSoundConfig)) {
-            $sseSoundConfig = [];
-        }
-
-        $defaultConfig = [
-            'game_started' => ['enabled' => true, 'sound' => 'game-start'],
-            'round_recorded' => ['enabled' => true, 'sound' => 'round-recorded'],
-            'round_winner' => ['enabled' => true, 'sound' => 'round-win'],
-            'round_loser' => ['enabled' => true, 'sound' => 'round-lose'],
-            'round_undone' => ['enabled' => true, 'sound' => 'default'],
-            'game_finished' => ['enabled' => true, 'sound' => 'game-win'],
-            'game_winner' => ['enabled' => true, 'sound' => 'game-win'],
-            'game_loser' => ['enabled' => true, 'sound' => 'round-lose'],
-            'game_status_changed' => [
-                'paused' => ['enabled' => true, 'sound' => 'game-pause'],
-                'resumed' => ['enabled' => true, 'sound' => 'game-resume'],
-            ],
-            'score_updated' => ['enabled' => false, 'sound' => 'default'],
-            'notification' => ['enabled' => true, 'sound' => 'default'],
-            'system_message' => ['enabled' => true, 'sound' => 'default'],
-        ];
-
-        foreach ($defaultConfig as $key => $defaultValue) {
-            if (!isset($sseSoundConfig[$key])) {
-                $sseSoundConfig[$key] = $defaultValue;
-            }
-            if ($key === 'game_status_changed' && is_array($defaultValue)) {
-                if (!isset($sseSoundConfig[$key]) || !is_array($sseSoundConfig[$key])) {
-                    $sseSoundConfig[$key] = $defaultValue;
-                } else {
-                    foreach ($defaultValue as $subKey => $subDefaultValue) {
-                        if (!isset($sseSoundConfig[$key][$subKey])) {
-                            $sseSoundConfig[$key][$subKey] = $subDefaultValue;
-                        }
-                    }
-                }
-            }
-        }
-
-        $soundsDir = PUBLIC_PATH . '/assets/sounds';
-        $soundFiles = ['default' => '/assets/sounds/default.mp3'];
+        // ✅ اصلاح مسیر پوشه صداها
+        $soundsDir = dirname(__DIR__, 2) . '/public/assets/sounds';
         if (is_dir($soundsDir)) {
             $files = scandir($soundsDir);
             foreach ($files as $file) {
@@ -396,6 +363,42 @@
                 }
             }
         }
+
+        // تکمیل تنظیمات پیش‌فرض (مقادیر گم‌شده را اضافه کن)
+        $defaultConfig = [
+            'game_started' => ['enabled' => true, 'sound' => 'game-start.mp3'],
+            'round_recorded' => ['enabled' => true, 'sound' => 'round-recorded.mp3'],
+            'round_winner' => ['enabled' => true, 'sound' => 'round-win.mp3'],
+            'round_loser' => ['enabled' => true, 'sound' => 'round-lose-2.mp3'],
+            'round_undone' => ['enabled' => true, 'sound' => 'round-lose-2.mp3'],
+            'game_finished' => ['enabled' => true, 'sound' => 'default.mp3'],
+            'game_winner' => ['enabled' => true, 'sound' => 'game-win.mp3'],
+            'game_loser' => ['enabled' => true, 'sound' => 'round-lose-3.mp3'],
+            'score_updated' => ['enabled' => true, 'sound' => 'game-pause.mp3'],
+            'notification' => ['enabled' => true, 'sound' => 'default.mp3'],
+            'system_message' => ['enabled' => true, 'sound' => 'default.mp3'],
+            'game_status_changed' => [
+                'paused' => ['enabled' => true, 'sound' => 'game-pause.mp3'],
+                'resumed' => ['enabled' => true, 'sound' => 'game-resume.mp3'],
+            ],
+        ];
+
+        foreach ($defaultConfig as $key => $defaultValue) {
+            if (!isset($sseSoundConfig[$key])) {
+                $sseSoundConfig[$key] = $defaultValue;
+            }
+            if ($key === 'game_status_changed' && is_array($defaultValue)) {
+                if (!isset($sseSoundConfig[$key]) || !is_array($sseSoundConfig[$key])) {
+                    $sseSoundConfig[$key] = $defaultValue;
+                } else {
+                    foreach ($defaultValue as $subKey => $subDefault) {
+                        if (!isset($sseSoundConfig[$key][$subKey])) {
+                            $sseSoundConfig[$key][$subKey] = $subDefault;
+                        }
+                    }
+                }
+            }
+        }
     } catch (\Throwable $e) {
         error_log("SSE Sound Config Error: " . $e->getMessage());
         $sseSoundConfig = [];
@@ -403,9 +406,47 @@
     }
     ?>
 
+
+    <!-- 🎵 تنظیمات صدای SSE + مقداردهی SoundManager -->
     <script>
         window.SSE_SOUND_CONFIG = <?= json_encode($sseSoundConfig, JSON_UNESCAPED_UNICODE) ?>;
-        window.SOUND_FILES = <?= json_encode($soundFiles, JSON_UNESCAPED_UNICODE) ?>;
+        window.SOUND_FILES = <?= json_encode($soundFiles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT) ?>;
+
+        // 🆕 تابع بارگذاری مجدد SoundManager
+        function reloadSoundManager() {
+            // 🆕 اگر SoundManager وجود ندارد یا loadConfig تابع نیست، نمونه جدید بساز
+            if (!window.SoundManager || typeof window.SoundManager.loadConfig !== 'function') {
+                console.warn('⚠️ SoundManager not available or loadConfig missing. Creating new instance...');
+                if (typeof SoundManager !== 'undefined') {
+                    window.SoundManager = new SoundManager();
+                } else {
+                    console.error('❌ SoundManager class not defined. Script not loaded yet.');
+                    // اگر کلاس وجود ندارد، بعد از ۱۰۰ms دوباره تلاش کن
+                    setTimeout(reloadSoundManager, 100);
+                    return;
+                }
+            }
+
+            // ریست کردن state
+            window.SoundManager._initialized = false;
+            window.SoundManager.eventConfig = {};
+            window.SoundManager.soundUrls = {};
+            window.SoundManager.loadConfig();
+            console.log('🔄 SoundManager reloaded with fresh config');
+        }
+
+        // اجرا با تاخیر صفر (بعد از بارگذاری کامل DOM)
+        // حذف setTimeout و جایگزینی با event listener
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reloadSoundManager);
+        } else {
+            // اگر DOM از قبل آماده است، با تاخیر کم اجرا کن
+            setTimeout(reloadSoundManager, 50);
+        }
+
+        console.log('🎵 SSE_SOUND_CONFIG loaded:', window.SSE_SOUND_CONFIG);
+        console.log('🎵 Available keys:', Object.keys(window.SSE_SOUND_CONFIG || {}));
+        console.log('🎵 SOUND_FILES:', Object.keys(window.SOUND_FILES || {}));
     </script>
 </head>
 
@@ -1149,6 +1190,7 @@
                         showConfirmButton: false,
                         timer: 5000,
                         timerProgressBar: true,
+                        // 🆕 حذف همه پارامترهای نامعتبر
                     });
                 }
             }
@@ -1429,12 +1471,10 @@
                 const data = await response.json();
 
                 if (data.success !== false && data.redirect) {
-                    // بازی پیدا شد - redirect
                     window.location.href = data.redirect;
                     return;
                 }
 
-                // هیچ بازی‌ای نیست - نمایش Toast
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         toast: true,
@@ -1447,9 +1487,12 @@
                         timerProgressBar: true,
                         background: '#f0f9ff',
                         color: '#1e40af',
-                        border: '1px solid #6366f1',
+                        // 🆕 حذف border (پارامتر نامعتبر)
                         width: '420px',
                         padding: '1rem 1.5rem',
+                        customClass: {
+                            popup: 'swal2-notification-border' // 🆕 جایگزین border
+                        }
                     });
                 } else {
                     alert(data.message || 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید');
