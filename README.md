@@ -1,7 +1,7 @@
 ## 🎮 UNO Tracker
 
 <p align="center">
-  <img src="https://github.com/persicafzar/uno-tracker/blob/main/uno-tracker/uno-tracker/public/assets/images/logo.svg" alt="UNO Tracker Logo" width="200">
+  <img src="https://github.com/persicafzar/uno-tracker/blob/main/uno-tracker/public/assets/images/logo.svg" alt="UNO Tracker Logo" width="200">
 </p>
 
 <p align="center">
