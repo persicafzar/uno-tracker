@@ -456,10 +456,98 @@ $conditionLabels = [
                 <!-- نمودار کارت‌های پرکاربرد -->
                 <?php if (!empty($profile['card_stats'])): ?>
                     <div class="bg-white rounded-2xl p-4 border-2 border-gray-200 shadow-md lg:col-span-2">
-                        <h3 class="text-base sm:text-lg font-black text-gray-800 mb-3 tracking-tight">🃏 کارت‌های برنده پرکاربرد</h3>
-                        <div class="h-64">
+                        <?php
+                        // مرتب‌سازی کارت‌ها بر اساس تعداد برد (نزولی) برای هماهنگی با نمودار
+                        $sortedCards = $profile['card_stats'];
+                        usort($sortedCards, function ($a, $b) {
+                            return ($b['usage_count'] ?? 0) - ($a['usage_count'] ?? 0);
+                        });
+
+                        // پالت رنگ‌های ثابت (همانند نمودار)
+                        $colorPalette = [
+                            '#ef4444',
+                            '#f97316',
+                            '#f59e0b',
+                            '#eab308',
+                            '#84cc16',
+                            '#22c55e',
+                            '#10b981',
+                            '#14b8a6',
+                            '#06b6d4',
+                            '#0ea5e9',
+                            '#3b82f6',
+                            '#6366f1',
+                            '#8b5cf6',
+                            '#a855f7',
+                            '#d946ef',
+                            '#ec4899',
+                            '#f43f5e',
+                        ];
+                        $totalCards = count($sortedCards);
+                        ?>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base sm:text-lg font-black text-gray-800 flex items-center gap-2">
+                                <span class="text-2xl">🃏</span>
+                                کارت‌های برنده پرکاربرد
+                            </h3>
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                                <?= $totalCards ?> کارت برتر
+                            </span>
+                        </div>
+                        <div class="h-72">
                             <canvas id="cardUsageChart"></canvas>
                         </div>
+
+                        <div class="!grid-cols-3 gap-3 grid lg:!grid-cols-6 mt-5 sm:!grid-cols-4">
+                            <?php foreach ($sortedCards as $index => $card):
+                                $color = $colorPalette[$index % count($colorPalette)];
+                                $emoji = $card['emoji'] ?? '🃏';
+                                $usage = $card['usage_count'] ?? 0;
+                                // رنگ‌های روشن‌تر برای پس‌زمینه
+                                $bgColor = $color . '20'; // 20% opacity
+                                $borderColor = $color . '60'; // 60% opacity
+                            ?>
+                                <div class="relative group">
+                                    <div class="rounded-xl p-3 border-2 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.03] text-center"
+                                        style="background-color: <?= $bgColor ?>; border-color: <?= $borderColor ?>;">
+                                        <div class="text-3xl sm:text-4xl mb-1 drop-shadow"><?= htmlspecialchars($emoji) ?></div>
+                                        <div class="font-bold text-gray-800 text-xs sm:text-sm truncate" title="<?= htmlspecialchars($card['name']) ?>">
+                                            <?= htmlspecialchars($card['name']) ?>
+                                        </div>
+                                        <div class="flex items-center justify-center gap-1 mt-1">
+                                            <span class="text-lg font-black" style="color: <?= $color ?>;">
+                                                🏆 <?= $usage ?>
+                                            </span>
+                                        </div>
+                                        <?php if (!empty($card['description'])): ?>
+                                            <div class="absolute invisible group-hover:visible z-20 bottom-full left-1/2 -translate-x-1/2 -mb-1 px-4 py-2.5 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-xl shadow-2xl max-w-36 w-max break-words whitespace-normal text-center leading-relaxed border border-white/10">
+                                                <?= htmlspecialchars($card['description']) ?>
+                                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900/95"></div>
+                                            </div>
+                                        <?php endif; ?>
+                                        <!-- نشان کمیابی (اختیاری) -->
+                                        <?php //if (!empty($card['rarity'])): 
+                                        ?>
+                                        <?php
+                                        // $rarityLabel = match ($card['rarity']) {
+                                        //     'common' => 'معمولی',
+                                        //     'rare' => 'کمیاب',
+                                        //     'legendary' => 'افسانه‌ای',
+                                        //     default => $card['rarity']
+                                        // };
+                                        ?>
+                                        <!-- <div class="absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-white/80 shadow-sm"
+                                                    style="color: <?= $color ?>;">
+                                                    <?php //echo mb_substr($rarityLabel, 0, 2) 
+                                                    ?>
+                                                </div> -->
+                                        <?php //endif; 
+                                        ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
                     </div>
                 <?php else: ?>
                     <div class="bg-gray-50 rounded-2xl p-8 border-2 border-gray-200 lg:col-span-2 text-center shadow-md">
@@ -987,6 +1075,7 @@ $conditionLabels = [
         }
 
         // نمودار کارت‌های پرکاربرد
+        // نمودار کارت‌های پرکاربرد (با برچسب‌های پایین و نمایش تعداد)
         if (cardStats && cardStats.length > 0) {
             const cardCtx = document.getElementById('cardUsageChart');
             if (cardCtx) {
@@ -996,19 +1085,20 @@ $conditionLabels = [
                     '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
                     '#ec4899', '#f43f5e',
                 ];
-                const labels = cardStats.map((card) => {
+                const sortedStats = [...cardStats].sort((a, b) => b.usage_count - a.usage_count);
+                const labels = sortedStats.map((card) => {
                     const emoji = card.emoji || card.name.charAt(0);
                     return `${emoji} ${card.name}`;
                 });
-                const colors = cardStats.map((_, i) => colorPalette[i % colorPalette.length]);
+                const colors = sortedStats.map((_, i) => colorPalette[i % colorPalette.length]);
 
                 new Chart(cardCtx, {
                     type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'تعداد برد با این کارت',
-                            data: cardStats.map(c => c.usage_count),
+                            label: 'تعداد برد',
+                            data: sortedStats.map(c => c.usage_count),
                             backgroundColor: colors.map(c => c + 'cc'),
                             borderColor: colors,
                             borderWidth: 2,
@@ -1019,7 +1109,8 @@ $conditionLabels = [
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        indexAxis: 'y',
+                        // 🔄 تغییر به حالت عمودی (برچسب‌ها در پایین)
+                        indexAxis: 'x',
                         plugins: {
                             legend: {
                                 display: false
@@ -1037,33 +1128,38 @@ $conditionLabels = [
                                 cornerRadius: 8,
                                 callbacks: {
                                     title: function(context) {
-                                        const card = cardStats[context[0].dataIndex];
+                                        const card = sortedStats[context[0].dataIndex];
                                         const emoji = card.emoji || card.name.charAt(0);
-                                        return `${emoji} ${card.name}`;
+                                        return `${emoji} ${card.name} : ${card.usage_count} بار برنده شده`;
                                     },
                                     label: function(context) {
-                                        return `🏆 ${context.parsed.x} بار برنده شده`;
+                                        return `🏆 ${context.parsed.y} برد`;
                                     },
-                                    afterLabel: function(context) {
-                                        const card = cardStats[context.dataIndex];
-                                        const rarityLabels = {
-                                            'common': 'معمولی',
-                                            'rare': 'کمیاب',
-                                            'legendary': 'افسانه‌ای'
-                                        };
-                                        return `✨ ${rarityLabels[card.rarity] || card.rarity}`;
-                                    }
+                                    // afterLabel: function(context) {
+                                    //     const card = sortedStats[context.dataIndex];
+                                    //     const rarityLabels = {
+                                    //         'common': 'معمولی',
+                                    //         'rare': 'کمیاب',
+                                    //         'legendary': 'افسانه‌ای'
+                                    //     };
+                                    //     return `✨ ${rarityLabels[card.rarity] || card.rarity}`;
+                                    // }
                                 }
                             }
                         },
                         scales: {
-                            x: {
+                            y: {
                                 beginAtZero: true,
                                 ticks: {
                                     stepSize: 1,
                                     font: {
-                                        size: 12
-                                    }
+                                        size: 12,
+                                        weight: 'bold'
+                                    },
+                                    color: '#374151'
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.06)'
                                 },
                                 title: {
                                     display: true,
@@ -1071,20 +1167,31 @@ $conditionLabels = [
                                     font: {
                                         size: 13,
                                         weight: 'bold'
-                                    }
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.05)'
+                                    },
+                                    color: '#6b7280'
                                 }
                             },
-                            y: {
+                            x: {
+                                // 🆕 نمایش همه برچسب‌ها در موبایل با چرخش
                                 ticks: {
+                                    autoSkip: false,
+                                    maxRotation: 45,
+                                    minRotation: 0,
                                     font: {
-                                        size: 13,
+                                        size: 11,
                                         weight: '500'
                                     },
                                     color: '#374151',
-                                    padding: 8
+                                    padding: 6,
+                                    // 🆕 نمایش تعداد برد در کنار نام
+                                    callback: function(value, index) {
+                                        const card = sortedStats[index];
+                                        if (card) {
+                                            const emoji = card.emoji || '';
+                                            return `${emoji} ${card.name} (${card.usage_count})`;
+                                        }
+                                        return this.getLabelForValue(value);
+                                    }
                                 },
                                 grid: {
                                     display: false

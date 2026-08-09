@@ -22,7 +22,7 @@ $rarityColors = [
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
                 <span class="text-2xl ml-2">🃏</span>
-                کارت‌های برنده
+                کارت ها و ضریب انها
             </h2>
             <span class="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
                 <?= count($cards) ?> کارت
@@ -73,7 +73,7 @@ $rarityColors = [
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
                 <span class="text-2xl ml-2">⚡</span>
-                نوع‌های برد
+                نوع‌های برد و ضریب انها
             </h2>
             <span class="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
                 <?= count($winTypes) ?> نوع
