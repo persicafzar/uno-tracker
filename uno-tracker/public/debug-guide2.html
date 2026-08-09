@@ -1,0 +1,1995 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🐞 راهنمای Debug Tools - UNO Tracker</title>
+    <!-- Tailwind CSS (Local) -->
+    <script src="assets/js/tailwind.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("assets/fonts/Vazir.woff2") format("woff2");
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      * {
+        font-family: "Vazir", Tahoma, Arial, sans-serif;
+      }
+      /* * {
+        font-family: "Vazirmatn", sans-serif;
+      } */
+      code,
+      pre,
+      .font-mono {
+        font-family: "JetBrains Mono", monospace !important;
+      }
+
+      .code-block {
+        background: #0d1117;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #30363d;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      }
+
+      .code-header {
+        background: linear-gradient(90deg, #161b22, #1f262e);
+        padding: 10px 16px;
+        border-bottom: 1px solid #30363d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .code-content {
+        padding: 20px;
+        overflow-x: auto;
+        direction: ltr;
+        text-align: left;
+      }
+
+      /* Syntax Highlighting Colors */
+      .kw {
+        color: #ff7b72;
+        font-weight: 600;
+      } /* keywords */
+      .fn {
+        color: #d2a8ff;
+        font-weight: 600;
+      } /* functions */
+      .st {
+        color: #a5d6ff;
+      } /* strings */
+      .cm {
+        color: #8b949e;
+        font-style: italic;
+      } /* comments */
+      .nb {
+        color: #79c0ff;
+      } /* numbers */
+      .vr {
+        color: #ffa657;
+      } /* variables */
+      .op {
+        color: #c9d1d9;
+      } /* operators */
+      .cl {
+        color: #7ee787;
+        font-weight: 600;
+      } /* classes */
+      .pr {
+        color: #f0883e;
+      } /* properties */
+
+      /* Demo Output Box */
+      .demo-output {
+        background: #0d1117;
+        color: #c9d1d9;
+        border-radius: 12px;
+        padding: 20px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        border: 2px solid #30363d;
+        direction: ltr;
+        text-align: left;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .demo-output::-webkit-scrollbar {
+        width: 10px;
+      }
+      .demo-output::-webkit-scrollbar-track {
+        background: #0d1117;
+      }
+      .demo-output::-webkit-scrollbar-thumb {
+        background: #30363d;
+        border-radius: 5px;
+      }
+
+      /* Feature Cards */
+      .feature-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      /* TOC */
+      .toc-item {
+        transition: all 0.2s;
+        border-right: 3px solid transparent;
+      }
+      .toc-item:hover {
+        border-right-color: #6366f1;
+        background: #f5f3ff;
+        padding-right: 20px;
+      }
+
+      /* Smooth scroll */
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* Gradient text */
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* Animated background */
+      .animated-bg {
+        background: linear-gradient(-45deg, #667eea, #764ba2, #6366f1, #8b5cf6);
+        background-size: 400% 400%;
+        animation: gradient 15s ease infinite;
+      }
+      @keyframes gradient {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      /* Copy button */
+      .copy-btn {
+        transition: all 0.2s;
+      }
+      .copy-btn:hover {
+        background: #30363d;
+        transform: scale(1.05);
+      }
+      .copy-btn.copied {
+        background: #238636 !important;
+        color: white !important;
+      }
+
+      /* Sticky TOC */
+      @media (min-width: 1280px) {
+        .sticky-toc {
+          position: sticky;
+          top: 20px;
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-slate-50 to-indigo-50">
+    <!-- ============ HERO HEADER ============ -->
+    <header class="animated-bg text-white py-16 relative overflow-hidden">
+      <div class="absolute inset-0 bg-black/20"></div>
+      <div
+        class="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"
+      ></div>
+      <div
+        class="absolute bottom-0 left-0 w-80 h-80 bg-purple-300/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl"
+      ></div>
+
+      <div class="relative z-10 max-w-6xl mx-auto px-6 text-center">
+        <div
+          class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-sm font-bold mb-6 border border-white/30"
+        >
+          <span>🐞</span>
+          <span>UNO Tracker Debug Tools v1.0</span>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-black mb-6 drop-shadow-2xl">
+          راهنمای کامل <span class="block mt-2">Debug Tools</span>
+        </h1>
+
+        <p
+          class="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8"
+        >
+          ابزارهای حرفه‌ای برای عیب‌یابی و توسعه سریع، الهام‌گرفته از Laravel
+        </p>
+
+        <div class="flex flex-wrap gap-3 justify-center mt-8">
+          <div
+            class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30"
+          >
+            🔴 <code class="font-mono">dd()</code>
+          </div>
+          <div
+            class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30"
+          >
+            🟢 <code class="font-mono">dump()</code>
+          </div>
+          <div
+            class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30"
+          >
+            🔵 <code class="font-mono">d()</code>
+          </div>
+          <div
+            class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30"
+          >
+            🟣 <code class="font-mono">sql()</code>
+          </div>
+          <div
+            class="px-5 py-2.5 bg-white/20 backdrop-blur-md rounded-xl font-bold border border-white/30"
+          >
+            🟠 <code class="font-mono">trace()</code>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-12">
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <!-- ============ STICKY TOC (Desktop) ============ -->
+        <aside class="hidden xl:block">
+          <div
+            class="sticky-toc bg-white rounded-2xl shadow-lg border border-gray-200 p-5"
+          >
+            <h3
+              class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2"
+            >
+              <span>📑</span> فهرست
+            </h3>
+            <nav class="space-y-1 text-sm">
+              <a
+                href="#install"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۱. نصب و راه‌اندازی</a
+              >
+              <a
+                href="#overview"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۲. معرفی توابع</a
+              >
+              <a
+                href="#dd"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۳. تابع dd()</a
+              >
+              <a
+                href="#dump"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۴. تابع dump()</a
+              >
+              <a
+                href="#d"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۵. تابع d()</a
+              >
+              <a
+                href="#sql"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۶. تابع sql()</a
+              >
+              <a
+                href="#trace"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۷. تابع trace()</a
+              >
+              <a
+                href="#examples"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۸. مثال‌های پروژه</a
+              >
+              <a
+                href="#security"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۹. نکات امنیتی</a
+              >
+              <a
+                href="#colors"
+                class="toc-item block py-2 px-3 rounded-lg text-gray-700 font-medium"
+                >۱۰. راهنمای رنگ‌ها</a
+              >
+            </nav>
+          </div>
+        </aside>
+
+        <!-- ============ CONTENT ============ -->
+        <main class="xl:col-span-3 space-y-12">
+          <!-- ============ SECTION 1: INSTALL ============ -->
+          <section id="install" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    📦
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">۱. نصب و راه‌اندازی</h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      تنها با ۲ خط کد در کل پروژه فعال می‌شود
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <div
+                  class="bg-blue-50 border-r-4 border-blue-500 p-4 rounded-lg"
+                >
+                  <p class="text-blue-900 font-bold mb-1">💡 نکته:</p>
+                  <p class="text-blue-800 text-sm">
+                    فایل
+                    <code class="bg-blue-100 px-2 py-0.5 rounded"
+                      >src/Core/Helpers.php</code
+                    >
+                    قبلاً ساخته شده است. فقط کافیست یک خط به
+                    <code class="bg-blue-100 px-2 py-0.5 rounded"
+                      >public/index.php</code
+                    >
+                    اضافه کنید.
+                  </p>
+                </div>
+
+                <div class="code-block">
+                  <div class="code-header">
+                    <div class="flex items-center gap-2 text-gray-400 text-sm">
+                      <span>📄</span>
+                      <span>public/index.php</span>
+                    </div>
+                    <button
+                      onclick="copyCode(this)"
+                      class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                    >
+                      📋 کپی
+                    </button>
+                  </div>
+                  <pre
+                    class="code-content"
+                  ><span class="cm">// Autoloader</span>
+<span class="kw">require_once</span> SRC_PATH . <span class="st">'/Core/Autoloader.php'</span>;
+<span class="cl">Core\Autoloader</span>::<span class="fn">register</span>();
+
+<span class="cm">// 🆕 لود توابع کمکی Debug</span>
+<span class="kw">require_once</span> SRC_PATH . <span class="st">'/Core/Helpers.php'</span>;
+
+<span class="cm">// ادامه کد...</span></pre>
+                </div>
+
+                <div
+                  class="bg-green-50 border-r-4 border-green-500 p-4 rounded-lg"
+                >
+                  <p class="text-green-900 font-bold mb-1">✅ آماده استفاده!</p>
+                  <p class="text-green-800 text-sm">
+                    حالا در هر فایل PHP پروژه می‌توانید از
+                    <code class="bg-green-100 px-2 py-0.5 rounded">dd()</code>,
+                    <code class="bg-green-100 px-2 py-0.5 rounded">dump()</code
+                    >,
+                    <code class="bg-green-100 px-2 py-0.5 rounded">d()</code>,
+                    <code class="bg-green-100 px-2 py-0.5 rounded">sql()</code>
+                    و
+                    <code class="bg-green-100 px-2 py-0.5 rounded"
+                      >trace()</code
+                    >
+                    استفاده کنید.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 2: OVERVIEW ============ -->
+          <section id="overview" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-pink-600 to-rose-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🎯
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">۲. معرفی توابع</h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      ۵ ابزار قدرتمند برای هر سناریو
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Card: dd -->
+                  <div
+                    class="feature-card bg-gradient-to-br from-red-50 to-rose-50 p-5 rounded-2xl border-2 border-red-200"
+                  >
+                    <div class="flex items-start gap-3 mb-3">
+                      <div
+                        class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center text-white font-black"
+                      >
+                        dd
+                      </div>
+                      <div>
+                        <h3 class="font-black text-gray-800">Dump & Die</h3>
+                        <p class="text-xs text-gray-600">نمایش و توقف کامل</p>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-3">
+                      متغیرها را نمایش می‌دهد و
+                      <strong>اجرای اسکریپت را متوقف</strong> می‌کند.
+                    </p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class="px-2 py-1 bg-red-500 text-white rounded-full font-bold"
+                        >🛑 توقف</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full"
+                        >برای دیباگ سریع</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Card: dump -->
+                  <div
+                    class="feature-card bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-2xl border-2 border-green-200"
+                  >
+                    <div class="flex items-start gap-3 mb-3">
+                      <div
+                        class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-black"
+                      >
+                        dump
+                      </div>
+                      <div>
+                        <h3 class="font-black text-gray-800">
+                          Dump (Continue)
+                        </h3>
+                        <p class="text-xs text-gray-600">نمایش و ادامه اجرا</p>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-3">
+                      متغیرها را نمایش می‌دهد ولی
+                      <strong>کد ادامه پیدا می‌کند</strong>.
+                    </p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class="px-2 py-1 bg-green-500 text-white rounded-full font-bold"
+                        >▶️ ادامه</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full"
+                        >چندین dump پشت هم</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Card: d -->
+                  <div
+                    class="feature-card bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-2xl border-2 border-blue-200"
+                  >
+                    <div class="flex items-start gap-3 mb-3">
+                      <div
+                        class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white font-black"
+                      >
+                        d
+                      </div>
+                      <div>
+                        <h3 class="font-black text-gray-800">Short Dump</h3>
+                        <p class="text-xs text-gray-600">Alias کوتاه dump</p>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-3">
+                      دقیقاً مانند
+                      <code class="bg-blue-100 px-1 rounded">dump()</code> ولی
+                      کوتاه‌تر برای تایپ سریع.
+                    </p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class="px-2 py-1 bg-blue-500 text-white rounded-full font-bold"
+                        >⚡ سریع</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full"
+                        >کمتر تایپ</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Card: sql -->
+                  <div
+                    class="feature-card bg-gradient-to-br from-purple-50 to-violet-50 p-5 rounded-2xl border-2 border-purple-200"
+                  >
+                    <div class="flex items-start gap-3 mb-3">
+                      <div
+                        class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center text-white font-black"
+                      >
+                        sql
+                      </div>
+                      <div>
+                        <h3 class="font-black text-gray-800">SQL Viewer</h3>
+                        <p class="text-xs text-gray-600">نمایش زیبای کوئری</p>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-3">
+                      کوئری SQL را با <strong>syntax highlighting</strong> و
+                      پارامترها نمایش می‌دهد.
+                    </p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class="px-2 py-1 bg-purple-500 text-white rounded-full font-bold"
+                        >🗄️ SQL</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full"
+                        >بهترین برای Repository</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Card: trace -->
+                  <div
+                    class="feature-card bg-gradient-to-br from-orange-50 to-amber-50 p-5 rounded-2xl border-2 border-orange-200 md:col-span-2"
+                  >
+                    <div class="flex items-start gap-3 mb-3">
+                      <div
+                        class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white font-black"
+                      >
+                        trace
+                      </div>
+                      <div>
+                        <h3 class="font-black text-gray-800">
+                          Call Stack Trace
+                        </h3>
+                        <p class="text-xs text-gray-600">
+                          نمایش مسیر فراخوانی توابع
+                        </p>
+                      </div>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-3">
+                      نشان می‌دهد که از کجا و چه مسیری طی شده تا به این نقطه
+                      برسیم. <strong>برای رفع باگ‌های پیچیده عالی است!</strong>
+                    </p>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span
+                        class="px-2 py-1 bg-orange-500 text-white rounded-full font-bold"
+                        >📍 Call Stack</span
+                      >
+                      <span
+                        class="px-2 py-1 bg-gray-200 text-gray-700 rounded-full"
+                        >دیباگ عمیق</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 3: dd() ============ -->
+          <section id="dd" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🔴
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۳. تابع
+                      <code class="font-mono bg-white/20 px-3 py-1 rounded"
+                        >dd()</code
+                      >
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      Dump and Die - نمایش و توقف کامل اجرای اسکریپت
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <!-- Example 3.1: Simple Variable -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >۱</span
+                    >
+                    دیباگ یک متغیر ساده
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 UserController.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">show</span>(<span class="cl">Request</span> <span class="vr">$request</span>, <span class="kw">array</span> <span class="vr">$params</span>): <span class="kw">void</span>
+{
+    <span class="vr">$userId</span> = (<span class="kw">int</span>) <span class="vr">$params</span>[<span class="st">'id'</span>];
+    <span class="vr">$user</span> = <span class="vr">$this</span>-><span class="pr">userService</span>-><span class="fn">getById</span>(<span class="vr">$userId</span>);
+    
+    <span class="fn">dd</span>(<span class="vr">$user</span>); <span class="cm">// 🛑 اینجا کد متوقف می‌شود</span>
+    
+    <span class="cm">// ❌ این خط هرگز اجرا نمی‌شود</span>
+    <span class="vr">$this</span>-><span class="pr">response</span>-><span class="fn">html</span>(...);
+}</pre>
+                  </div>
+                </div>
+
+                <!-- Example 3.2: Multiple Variables -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >۲</span
+                    >
+                    دیباگ چند متغیر همزمان
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 AuthService.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">login</span>(<span class="kw">array</span> <span class="vr">$data</span>): <span class="kw">array</span>
+{
+    <span class="vr">$phone</span> = <span class="fn">trim</span>(<span class="vr">$data</span>[<span class="st">'phone'</span>]);
+    <span class="vr">$password</span> = <span class="vr">$data</span>[<span class="st">'password'</span>];
+    
+    <span class="vr">$user</span> = <span class="vr">$this</span>-><span class="pr">db</span>-><span class="fn">fetchOne</span>(
+        <span class="st">"SELECT * FROM users WHERE phone = ?"</span>, 
+        [<span class="vr">$phone</span>]
+    );
+    
+    <span class="cm">// همه را یکجا ببینید</span>
+    <span class="fn">dd</span>(<span class="vr">$phone</span>, <span class="vr">$password</span>, <span class="vr">$user</span>, [<span class="st">'method'</span> => <span class="st">'login'</span>]);
+}</pre>
+                  </div>
+                </div>
+
+                <!-- Example Output -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >📺</span
+                    >
+                    خروجی نمونه
+                  </h3>
+                  <div class="demo-output">
+                    <div
+                      style="
+                        background: #161b22;
+                        padding: 10px 16px;
+                        border-radius: 8px 8px 0 0;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                      "
+                    >
+                      <div style="color: #f0f6fc; font-weight: 700">
+                        🔍 Debug Output
+                        <span
+                          style="
+                            background: #da3633;
+                            padding: 2px 10px;
+                            border-radius: 12px;
+                            font-size: 10px;
+                            margin-right: 8px;
+                          "
+                          >DIE</span
+                        >
+                        <span style="color: #8b949e; font-weight: 400"
+                          >(1 variable)</span
+                        >
+                      </div>
+                      <div style="font-size: 11px; color: #8b949e">
+                        📁 <strong>AuthService.php</strong>:42
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        background: #0d1117;
+                        padding: 16px;
+                        border-radius: 0 0 8px 8px;
+                        border-top: 1px solid #30363d;
+                      "
+                    >
+                      <div
+                        style="
+                          padding: 12px;
+                          background: #161b22;
+                          border-radius: 8px;
+                          border-left: 3px solid #58a6ff;
+                        "
+                      >
+                        <div
+                          style="
+                            font-size: 11px;
+                            color: #8b949e;
+                            margin-bottom: 6px;
+                          "
+                        >
+                          #0 @ AuthService.php:42
+                        </div>
+                        <span style="color: #ffa657">array</span
+                        ><span style="color: #8b949e">(5)</span>
+                        <a
+                          href="#"
+                          style="
+                            color: #58a6ff;
+                            text-decoration: none;
+                            font-size: 11px;
+                          "
+                          >[▼ toggle]</a
+                        >
+                        <div
+                          style="
+                            margin-right: 20px;
+                            border-right: 2px solid #30363d;
+                            padding-right: 12px;
+                            margin-top: 4px;
+                          "
+                        >
+                          <div>
+                            <span style="color: #ffa657">"id"</span> =>
+                            <span style="color: #6cb6ff">integer</span>
+                            <span style="color: #79c0ff; font-weight: bold"
+                              >1</span
+                            >
+                          </div>
+                          <div>
+                            <span style="color: #ffa657">"nickname"</span> =>
+                            <span style="color: #e879a0">string</span
+                            ><span style="color: #8b949e">(5)</span>
+                            <span style="color: #a5d6ff">"admin"</span>
+                          </div>
+                          <div>
+                            <span style="color: #ffa657">"phone"</span> =>
+                            <span style="color: #e879a0">string</span
+                            ><span style="color: #8b949e">(11)</span>
+                            <span style="color: #a5d6ff">"09123456789"</span>
+                          </div>
+                          <div>
+                            <span style="color: #ffa657">"role"</span> =>
+                            <span style="color: #e879a0">string</span
+                            ><span style="color: #8b949e">(11)</span>
+                            <span style="color: #a5d6ff">"super_admin"</span>
+                          </div>
+                          <div>
+                            <span style="color: #ffa657">"is_online"</span> =>
+                            <span style="color: #ff7b72; font-weight: bold"
+                              >true</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 4: dump() ============ -->
+          <section id="dump" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🟢
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۴. تابع
+                      <code class="font-mono bg-white/20 px-3 py-1 rounded"
+                        >dump()</code
+                      >
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      نمایش متغیرها با ادامه اجرای کد
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <div
+                  class="bg-emerald-50 border-r-4 border-emerald-500 p-4 rounded-lg"
+                >
+                  <p class="text-emerald-900 font-bold mb-1">🎯 کاربرد:</p>
+                  <p class="text-emerald-800 text-sm">
+                    زمانی که می‌خواهید چند نقطه از کد را بررسی کنید ولی
+                    نمی‌خواهید اجرا متوقف شود.
+                  </p>
+                </div>
+
+                <div class="code-block">
+                  <div class="code-header">
+                    <span class="text-gray-400 text-sm"
+                      >📄 GameService.php</span
+                    >
+                    <button
+                      onclick="copyCode(this)"
+                      class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                    >
+                      📋 کپی
+                    </button>
+                  </div>
+                  <pre
+                    class="code-content"
+                  ><span class="kw">public function</span> <span class="fn">createGame</span>(<span class="kw">array</span> <span class="vr">$data</span>): <span class="kw">array</span>
+{
+    <span class="cm">// بررسی ۱: داده ورودی</span>
+    <span class="fn">dump</span>(<span class="vr">$data</span>);
+    
+    <span class="vr">$refereeId</span> = <span class="vr">$data</span>[<span class="st">'referee_id'</span>];
+    <span class="vr">$gameName</span> = <span class="fn">trim</span>(<span class="vr">$data</span>[<span class="st">'game_name'</span>]);
+    
+    <span class="cm">// بررسی ۲: مقادیر استخراج شده</span>
+    <span class="fn">dump</span>(<span class="vr">$refereeId</span>, <span class="vr">$gameName</span>);
+    
+    <span class="cm">// بررسی ضدتقلب</span>
+    <span class="vr">$antiCheat</span> = <span class="kw">new</span> <span class="cl">AntiCheatService</span>();
+    <span class="vr">$check</span> = <span class="vr">$antiCheat</span>-><span class="fn">checkGameCreation</span>(<span class="vr">$refereeId</span>);
+    
+    <span class="cm">// بررسی ۳: نتیجه بررسی</span>
+    <span class="fn">dump</span>(<span class="vr">$check</span>);
+    
+    <span class="cm">// ✅ کد ادامه پیدا می‌کند و همه dump ها نمایش داده می‌شوند</span>
+    <span class="kw">if</span> (!<span class="vr">$check</span>[<span class="st">'allowed'</span>]) {
+        <span class="kw">return</span> [<span class="st">'success'</span> => <span class="nb">false</span>];
+    }
+    
+    <span class="cm">// ... ادامه کد</span>
+}</pre>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div
+                    class="bg-green-50 p-4 rounded-xl border border-green-200"
+                  >
+                    <div class="text-2xl mb-2">📦</div>
+                    <p class="text-sm font-bold text-green-900">Dump #1</p>
+                    <p class="text-xs text-green-700 mt-1">داده ورودی</p>
+                  </div>
+                  <div
+                    class="bg-green-50 p-4 rounded-xl border border-green-200"
+                  >
+                    <div class="text-2xl mb-2">🔍</div>
+                    <p class="text-sm font-bold text-green-900">Dump #2</p>
+                    <p class="text-xs text-green-700 mt-1">
+                      مقادیر استخراج شده
+                    </p>
+                  </div>
+                  <div
+                    class="bg-green-50 p-4 rounded-xl border border-green-200"
+                  >
+                    <div class="text-2xl mb-2">🛡️</div>
+                    <p class="text-sm font-bold text-green-900">Dump #3</p>
+                    <p class="text-xs text-green-700 mt-1">نتیجه بررسی</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 5: d() ============ -->
+          <section id="d" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🔵
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۵. تابع
+                      <code class="font-mono bg-white/20 px-3 py-1 rounded"
+                        >d()</code
+                      >
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      Alias کوتاه برای dump() - سریع‌ترین راه برای دیباگ
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    class="bg-red-50 p-5 rounded-2xl border-2 border-red-200"
+                  >
+                    <div class="text-sm font-bold text-red-800 mb-2">
+                      ❌ راه طولانی
+                    </div>
+                    <pre
+                      class="text-sm font-mono text-gray-800 bg-white p-3 rounded-lg overflow-x-auto"
+                    ><span class="fn">dump</span>(<span class="vr">$user</span>-><span class="pr">getStats</span>());</pre>
+                  </div>
+                  <div
+                    class="bg-green-50 p-5 rounded-2xl border-2 border-green-200"
+                  >
+                    <div class="text-sm font-bold text-green-800 mb-2">
+                      ✅ راه سریع
+                    </div>
+                    <pre
+                      class="text-sm font-mono text-gray-800 bg-white p-3 rounded-lg overflow-x-auto"
+                    ><span class="fn">d</span>(<span class="vr">$user</span>-><span class="pr">getStats</span>());</pre>
+                  </div>
+                </div>
+
+                <div
+                  class="bg-indigo-50 border-r-4 border-indigo-500 p-4 rounded-lg"
+                >
+                  <p class="text-indigo-900 font-bold mb-2">💡 ایده‌آل برای:</p>
+                  <ul
+                    class="text-indigo-800 text-sm space-y-1 list-disc list-inside"
+                  >
+                    <li>دیباگ سریع در حین کدنویسی</li>
+                    <li>وقتی زیاد از dump استفاده می‌کنید</li>
+                    <li>نوشتن کد تمیزتر و کوتاه‌تر</li>
+                    <li>زمانی که انگشتان خسته‌اید! 😄</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 6: sql() ============ -->
+          <section id="sql" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-purple-600 to-violet-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🟣
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۶. تابع
+                      <code class="font-mono bg-white/20 px-3 py-1 rounded"
+                        >sql()</code
+                      >
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      نمایش زیبای کوئری SQL با syntax highlighting
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <!-- Example 6.1: Simple Query -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >۱</span
+                    >
+                    کوئری ساده با پارامتر
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 UserRepository.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">getUser</span>(<span class="kw">int</span> <span class="vr">$userId</span>): ?<span class="kw">array</span>
+{
+    <span class="vr">$query</span> = <span class="st">"SELECT * FROM users WHERE id = ? AND status = ?"</span>;
+    <span class="vr">$params</span> = [<span class="vr">$userId</span>, <span class="st">'active'</span>];
+    
+    <span class="cm">// 🆕 نمایش زیبای کوئری قبل از اجرا</span>
+    <span class="fn">sql</span>(<span class="vr">$query</span>, <span class="vr">$params</span>);
+    
+    <span class="kw">return</span> <span class="vr">$this</span>-><span class="pr">db</span>-><span class="fn">fetchOne</span>(<span class="vr">$query</span>, <span class="vr">$params</span>);
+}</pre>
+                  </div>
+                </div>
+
+                <!-- Example Output SQL -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >📺</span
+                    >
+                    خروجی نمونه
+                  </h3>
+                  <div
+                    style="
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      font-size: 13px;
+                      line-height: 1.7;
+                      background: #0d1117;
+                      color: #c9d1d9;
+                      border: 2px solid #1f6feb;
+                      border-radius: 12px;
+                      padding: 16px;
+                      direction: ltr;
+                      text-align: left;
+                    "
+                  >
+                    <div
+                      style="
+                        color: #58a6ff;
+                        font-size: 11px;
+                        margin-bottom: 8px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      "
+                    >
+                      🗄️ SQL Query
+                      <span style="color: #8b949e"
+                        >@ UserRepository.php:15</span
+                      >
+                    </div>
+                    <div>
+                      <span style="color: #ff7b72; font-weight: bold"
+                        >SELECT</span
+                      >
+                      *
+                      <span style="color: #ff7b72; font-weight: bold"
+                        >FROM</span
+                      >
+                      users
+                      <span style="color: #ff7b72; font-weight: bold"
+                        >WHERE</span
+                      >
+                      id =
+                      <span style="color: #ffa657; font-weight: bold">?</span>
+                      <span style="color: #ff7b72; font-weight: bold">AND</span>
+                      status =
+                      <span style="color: #ffa657; font-weight: bold">?</span>
+                    </div>
+                    <div
+                      style="
+                        margin-top: 12px;
+                        padding-top: 12px;
+                        border-top: 1px solid #30363d;
+                      "
+                    >
+                      <div
+                        style="
+                          color: #ffa657;
+                          font-size: 11px;
+                          margin-bottom: 4px;
+                        "
+                      >
+                        PARAMETERS (2):
+                      </div>
+                      <div>
+                        <span style="color: #79c0ff">[0]</span>
+                        <span style="color: #8b949e">(integer)</span> =
+                        <span style="color: #a5d6ff">1</span>
+                      </div>
+                      <div>
+                        <span style="color: #79c0ff">[1]</span>
+                        <span style="color: #8b949e">(string)</span> =
+                        <span style="color: #a5d6ff">"active"</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Example 6.2: Complex Query -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >۲</span
+                    >
+                    کوئری پیچیده با JOIN
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 GameRepository.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">getUserGames</span>(<span class="kw">int</span> <span class="vr">$userId</span>, <span class="kw">string</span> <span class="vr">$status</span>): <span class="kw">array</span>
+{
+    <span class="vr">$query</span> = <span class="st">"SELECT g.*, u.nickname as referee_name
+              FROM games g
+              INNER JOIN users u ON g.referee_id = u.id
+              WHERE g.referee_id = ?
+              AND g.status = ?
+              ORDER BY g.created_at DESC
+              LIMIT ?"</span>;
+    
+    <span class="fn">sql</span>(<span class="vr">$query</span>, [<span class="vr">$userId</span>, <span class="vr">$status</span>, <span class="nb">10</span>]);
+    
+    <span class="kw">return</span> <span class="vr">$this</span>-><span class="pr">db</span>-><span class="fn">fetchAll</span>(<span class="vr">$query</span>, [<span class="vr">$userId</span>, <span class="vr">$status</span>, <span class="nb">10</span>]);
+}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 7: trace() ============ -->
+          <section id="trace" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🟠
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۷. تابع
+                      <code class="font-mono bg-white/20 px-3 py-1 rounded"
+                        >trace()</code
+                      >
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      Call Stack - مسیر فراخوانی توابع را نشان می‌دهد
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <div
+                  class="bg-orange-50 border-r-4 border-orange-500 p-4 rounded-lg"
+                >
+                  <p class="text-orange-900 font-bold mb-1">🎯 کاربرد:</p>
+                  <p class="text-orange-800 text-sm">
+                    وقتی می‌خواهید بدانید از کدام مسیر و چه ترتیبی از توابع به
+                    این نقطه رسیده‌اید. برای رفع باگ‌های پیچیده و درک جریان
+                    برنامه عالی است.
+                  </p>
+                </div>
+
+                <div class="code-block">
+                  <div class="code-header">
+                    <span class="text-gray-400 text-sm"
+                      >📄 AntiCheatService.php</span
+                    >
+                    <button
+                      onclick="copyCode(this)"
+                      class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                    >
+                      📋 کپی
+                    </button>
+                  </div>
+                  <pre
+                    class="code-content"
+                  ><span class="kw">public function</span> <span class="fn">checkGameCreation</span>(<span class="kw">int</span> <span class="vr">$userId</span>): <span class="kw">array</span>
+{
+    <span class="cm">// می‌خواهیم بدانیم این تابع از کجا فراخوانی شده</span>
+    <span class="fn">trace</span>();
+    
+    <span class="cm">// بررسی‌های ضدتقلب...</span>
+    <span class="vr">$user</span> = <span class="vr">$this</span>-><span class="fn">getUser</span>(<span class="vr">$userId</span>);
+    <span class="vr">$recentGames</span> = <span class="vr">$this</span>-><span class="fn">getRecentGames</span>(<span class="vr">$userId</span>);
+    
+    <span class="cm">// ...</span>
+}</pre>
+                </div>
+
+                <!-- Example Output Trace -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span
+                      class="w-8 h-8 bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center text-sm font-black"
+                      >📺</span
+                    >
+                    خروجی نمونه
+                  </h3>
+                  <div
+                    style="
+                      font-family: &quot;JetBrains Mono&quot;, monospace;
+                      font-size: 12px;
+                      background: #0d1117;
+                      color: #c9d1d9;
+                      border: 2px solid #f0883e;
+                      border-radius: 12px;
+                      padding: 16px;
+                      direction: ltr;
+                      text-align: left;
+                    "
+                  >
+                    <div
+                      style="
+                        color: #f0883e;
+                        font-weight: bold;
+                        margin-bottom: 8px;
+                      "
+                    >
+                      📍 Call Stack (5 frames)
+                    </div>
+                    <div
+                      style="
+                        padding: 4px 8px;
+                        border-right: 2px solid #f0883e;
+                        margin: 2px 0;
+                        background: #161b22;
+                      "
+                    >
+                      <span style="color: #8b949e">#0</span>
+                      <span style="color: #d2a8ff"
+                        >AntiCheatService::checkGameCreation()</span
+                      >
+                      <span style="color: #8b949e">at</span>
+                      <span style="color: #79c0ff"
+                        >AntiCheatService.php:42</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        padding: 4px 8px;
+                        border-right: 2px solid #30363d;
+                        margin: 2px 0;
+                      "
+                    >
+                      <span style="color: #8b949e">#1</span>
+                      <span style="color: #d2a8ff"
+                        >GameService::createGame()</span
+                      >
+                      <span style="color: #8b949e">at</span>
+                      <span style="color: #79c0ff">GameService.php:78</span>
+                    </div>
+                    <div
+                      style="
+                        padding: 4px 8px;
+                        border-right: 2px solid #30363d;
+                        margin: 2px 0;
+                      "
+                    >
+                      <span style="color: #8b949e">#2</span>
+                      <span style="color: #d2a8ff"
+                        >GameController::store()</span
+                      >
+                      <span style="color: #8b949e">at</span>
+                      <span style="color: #79c0ff">GameController.php:45</span>
+                    </div>
+                    <div
+                      style="
+                        padding: 4px 8px;
+                        border-right: 2px solid #30363d;
+                        margin: 2px 0;
+                      "
+                    >
+                      <span style="color: #8b949e">#3</span>
+                      <span style="color: #d2a8ff">Router::callHandler()</span>
+                      <span style="color: #8b949e">at</span>
+                      <span style="color: #79c0ff">Router.php:128</span>
+                    </div>
+                    <div
+                      style="
+                        padding: 4px 8px;
+                        border-right: 2px solid #30363d;
+                        margin: 2px 0;
+                      "
+                    >
+                      <span style="color: #8b949e">#4</span>
+                      <span style="color: #d2a8ff">Router::dispatch()</span>
+                      <span style="color: #8b949e">at</span>
+                      <span style="color: #79c0ff">index.php:402</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 8: REAL EXAMPLES ============ -->
+          <section id="examples" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-slate-800 to-gray-900 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    💼
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">
+                      ۸. مثال‌های واقعی از پروژه
+                    </h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      سناریوهای واقعی که در UNO Tracker کاربرد دارند
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-6">
+                <!-- Example: Debug User Registration -->
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800 mb-3">
+                    🎯 مثال ۱: دیباگ ثبت‌نام کاربر
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 AuthService.php - register()</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">register</span>(<span class="kw">array</span> <span class="vr">$data</span>): <span class="kw">array</span>
+{
+    <span class="cm">// بررسی داده ورودی</span>
+    <span class="fn">dump</span>(<span class="st">'📥 Input data:'</span>, <span class="vr">$data</span>);
+    
+    <span class="cm">// بررسی IP</span>
+    <span class="vr">$antiCheat</span> = <span class="kw">new</span> <span class="cl">AntiCheatService</span>();
+    <span class="vr">$ipCheck</span> = <span class="vr">$antiCheat</span>-><span class="fn">checkIPForRegistration</span>(
+        <span class="vr">$_SERVER</span>[<span class="st">'REMOTE_ADDR'</span>] ?? <span class="st">''</span>
+    );
+    
+    <span class="fn">dump</span>(<span class="st">'🛡️ IP Check:'</span>, <span class="vr">$ipCheck</span>);
+    
+    <span class="cm">// اگر مشکل داشت، همه چیز را ببینیم و متوقف شویم</span>
+    <span class="kw">if</span> (!<span class="vr">$ipCheck</span>[<span class="st">'allowed'</span>]) {
+        <span class="fn">dd</span>(<span class="st">'❌ IP blocked!'</span>, <span class="vr">$ipCheck</span>, <span class="vr">$_SERVER</span>);
+    }
+    
+    <span class="cm">// اعتبارسنجی</span>
+    <span class="vr">$valid</span> = <span class="vr">$this</span>-><span class="pr">validator</span>-><span class="fn">validateRegister</span>(<span class="vr">$data</span>);
+    <span class="fn">dump</span>(<span class="st">'✅ Validation:'</span>, <span class="vr">$valid</span>, <span class="vr">$this</span>-><span class="pr">validator</span>-><span class="fn">getErrors</span>());
+    
+    <span class="cm">// ... ادامه کد</span>
+}</pre>
+                  </div>
+                </div>
+
+                <!-- Example: Debug Anti-Cheat -->
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800 mb-3">
+                    🛡️ مثال ۲: دیباگ سیستم ضدتقلب
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 AntiCheatService.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">checkGameCreation</span>(<span class="kw">int</span> <span class="vr">$userId</span>): <span class="kw">array</span>
+{
+    <span class="cm">// کوئری‌های SQL را ببینیم</span>
+    <span class="vr">$query</span> = <span class="st">"SELECT COUNT(*) as count FROM games 
+              WHERE referee_id = ? 
+              AND DATE(created_at) = CURDATE()"</span>;
+    
+    <span class="fn">sql</span>(<span class="vr">$query</span>, [<span class="vr">$userId</span>]);
+    
+    <span class="vr">$result</span> = <span class="vr">$this</span>-><span class="pr">db</span>-><span class="fn">fetchOne</span>(<span class="vr">$query</span>, [<span class="vr">$userId</span>]);
+    <span class="fn">dump</span>(<span class="st">'📊 Games today:'</span>, <span class="vr">$result</span>);
+    
+    <span class="cm">// بررسی‌های مختلف</span>
+    <span class="vr">$checks</span> = [
+        <span class="st">'ip_check'</span> => <span class="vr">$this</span>-><span class="fn">checkIP</span>(<span class="vr">$userId</span>),
+        <span class="st">'rate_limit'</span> => <span class="vr">$this</span>-><span class="fn">checkRateLimit</span>(<span class="vr">$userId</span>),
+        <span class="st">'account_age'</span> => <span class="vr">$this</span>-><span class="fn">checkAccountAge</span>(<span class="vr">$userId</span>),
+    ];
+    
+    <span class="fn">dump</span>(<span class="st">'🔍 All checks:'</span>, <span class="vr">$checks</span>);
+    
+    <span class="cm">// در صورت نیاز به بررسی عمیق‌تر</span>
+    <span class="kw">if</span> (<span class="vr">$checks</span>[<span class="st">'rate_limit'</span>] === <span class="nb">false</span>) {
+        <span class="fn">trace</span>(); <span class="cm">// ببینیم از کجا آمده</span>
+    }
+    
+    <span class="kw">return</span> [<span class="st">'allowed'</span> => <span class="nb">true</span>];
+}</pre>
+                  </div>
+                </div>
+
+                <!-- Example: Debug Event System -->
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800 mb-3">
+                    ⚡ مثال ۳: دیباگ سیستم رویدادها
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 GamificationListener.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="kw">public function</span> <span class="fn">onGameFinished</span>(<span class="kw">array</span> <span class="vr">$event</span>): <span class="kw">void</span>
+{
+    <span class="cm">// همه اطلاعات رویداد</span>
+    <span class="fn">d</span>(<span class="st">'🎮 Game finished event:'</span>, <span class="vr">$event</span>);
+    
+    <span class="vr">$gameId</span> = <span class="vr">$event</span>[<span class="st">'game_id'</span>];
+    <span class="vr">$winnerId</span> = <span class="vr">$event</span>[<span class="st">'winner_id'</span>];
+    
+    <span class="cm">// اگر برنده نداشت، متوقف شو</span>
+    <span class="kw">if</span> (!<span class="vr">$winnerId</span>) {
+        <span class="fn">dd</span>(<span class="st">'❌ No winner!'</span>, <span class="vr">$event</span>);
+    }
+    
+    <span class="cm">// محاسبه XP</span>
+    <span class="vr">$xp</span> = <span class="vr">$this</span>-><span class="fn">calculateXP</span>(<span class="vr">$gameId</span>);
+    <span class="fn">d</span>(<span class="st">'⭐ XP calculated:'</span>, <span class="vr">$xp</span>);
+    
+    <span class="cm">// ادامه...</span>
+}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 9: SECURITY ============ -->
+          <section id="security" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-red-700 to-rose-800 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🔒
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">۹. نکات امنیتی</h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      حتماً قبل از Deploy رعایت کنید
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 space-y-5">
+                <!-- Warning Box -->
+                <div class="bg-red-50 border-2 border-red-300 p-5 rounded-2xl">
+                  <div class="flex items-start gap-3">
+                    <div class="text-4xl">⚠️</div>
+                    <div class="flex-1">
+                      <h3 class="text-lg font-black text-red-900 mb-2">
+                        هشدار مهم!
+                      </h3>
+                      <p class="text-red-800 text-sm leading-relaxed">
+                        این توابع
+                        <strong>فقط برای محیط Development</strong> هستند. هرگز
+                        نباید در Production فعال باشند، زیرا:
+                      </p>
+                      <ul
+                        class="text-red-800 text-sm mt-3 space-y-1 list-disc list-inside"
+                      >
+                        <li>اطلاعات حساس دیتابیس را به کاربر نمایش می‌دهند</li>
+                        <li>
+                          رمزهای عبور، توکن‌ها و کلیدهای API ممکن است لو بروند
+                        </li>
+                        <li>عملکرد برنامه را به شدت کاهش می‌دهند</li>
+                        <li>ممکن است باعث نشت اطلاعات کاربران شود</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tips Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    class="bg-green-50 p-5 rounded-2xl border-2 border-green-200"
+                  >
+                    <h4
+                      class="font-black text-green-900 mb-3 flex items-center gap-2"
+                    >
+                      <span class="text-xl">✅</span> کارهای درست
+                    </h4>
+                    <ul class="text-sm text-green-800 space-y-2">
+                      <li class="flex items-start gap-2">
+                        <span class="text-green-500 flex-shrink-0">•</span>
+                        <span>فقط در Localhost استفاده کنید</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-green-500 flex-shrink-0">•</span>
+                        <span
+                          >قبل از commit همه
+                          <code class="bg-green-100 px-1 rounded">dd()</code> را
+                          حذف کنید</span
+                        >
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-green-500 flex-shrink-0">•</span>
+                        <span>از Git hooks برای جلوگیری استفاده کنید</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-green-500 flex-shrink-0">•</span>
+                        <span
+                          >فایل Helpers.php را در production disable کنید</span
+                        >
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div
+                    class="bg-red-50 p-5 rounded-2xl border-2 border-red-200"
+                  >
+                    <h4
+                      class="font-black text-red-900 mb-3 flex items-center gap-2"
+                    >
+                      <span class="text-xl">❌</span> کارهای اشتباه
+                    </h4>
+                    <ul class="text-sm text-red-800 space-y-2">
+                      <li class="flex items-start gap-2">
+                        <span class="text-red-500 flex-shrink-0">•</span>
+                        <span>فراموش کردن حذف dd() قبل از deploy</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-red-500 flex-shrink-0">•</span>
+                        <span>dump کردن پسورد یا توکن‌ها</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-red-500 flex-shrink-0">•</span>
+                        <span>استفاده در Production</span>
+                      </li>
+                      <li class="flex items-start gap-2">
+                        <span class="text-red-500 flex-shrink-0">•</span>
+                        <span>commit کردن فایل با debug</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Git Hook Example -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span class="text-xl">🔧</span> Git Pre-Commit Hook
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 .git/hooks/pre-commit</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="cm">#!/bin/bash</span>
+
+<span class="cm"># جلوگیری از commit کردن debug functions</span>
+<span class="kw">if</span> git diff --cached | grep -E <span class="st">"^\+.*(dd\(|dump\(|d\(|sql\(|trace\()"</span> > /dev/null; <span class="kw">then</span>
+    <span class="fn">echo</span> <span class="st">"⚠️  Debug functions found! Remove them before commit."</span>
+    <span class="fn">echo</span> <span class="st">"🔍 Files with debug:"</span>
+    git diff --cached --name-only | xargs grep -l -E <span class="st">"(dd|dump|d|sql|trace)\("</span>
+    <span class="kw">exit</span> <span class="nb">1</span>
+<span class="kw">fi</span>
+
+<span class="fn">echo</span> <span class="st">"✅ No debug functions found. Commit allowed."</span>
+<span class="kw">exit</span> <span class="nb">0</span></pre>
+                  </div>
+                </div>
+
+                <!-- Disable in Production -->
+                <div>
+                  <h3
+                    class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2"
+                  >
+                    <span class="text-xl">🛡️</span> غیرفعال‌سازی در Production
+                  </h3>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span class="text-gray-400 text-sm"
+                        >📄 public/index.php</span
+                      >
+                      <button
+                        onclick="copyCode(this)"
+                        class="copy-btn px-3 py-1 bg-gray-700 text-white text-xs rounded-md"
+                      >
+                        📋 کپی
+                      </button>
+                    </div>
+                    <pre
+                      class="code-content"
+                    ><span class="cm">// فقط در Development لود شود</span>
+<span class="kw">if</span> (<span class="fn">getenv</span>(<span class="st">'APP_DEBUG'</span>) === <span class="st">'true'</span>) {
+    <span class="kw">require_once</span> SRC_PATH . <span class="st">'/Core/Helpers.php'</span>;
+} <span class="kw">else</span> {
+    <span class="cm">// تعریف توابع خالی برای جلوگیری از خطا</span>
+    <span class="kw">if</span> (!<span class="fn">function_exists</span>(<span class="st">'dd'</span>)) {
+        <span class="kw">function</span> <span class="fn">dd</span>(...<span class="vr">$vars</span>) { <span class="cm">/* nothing */</span> }
+        <span class="kw">function</span> <span class="fn">dump</span>(...<span class="vr">$vars</span>) { <span class="cm">/* nothing */</span> }
+        <span class="kw">function</span> <span class="fn">d</span>(...<span class="vr">$vars</span>) { <span class="cm">/* nothing */</span> }
+        <span class="kw">function</span> <span class="fn">sql</span>(<span class="kw">string</span> <span class="vr">$q</span>, <span class="kw">array</span> <span class="vr">$p</span> = []) { <span class="cm">/* nothing */</span> }
+        <span class="kw">function</span> <span class="fn">trace</span>() { <span class="cm">/* nothing */</span> }
+    }
+}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ SECTION 10: COLORS ============ -->
+          <section id="colors" class="scroll-mt-8">
+            <div
+              class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div
+                class="bg-gradient-to-r from-cyan-600 to-teal-600 p-6 text-white"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl"
+                  >
+                    🎨
+                  </div>
+                  <div>
+                    <h2 class="text-2xl font-black">۱۰. راهنمای رنگ‌ها</h2>
+                    <p class="text-white/80 text-sm mt-1">
+                      هر نوع داده رنگ مخصوص خود را دارد
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">🌸</div>
+                    <div
+                      style="color: #e879a0; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      string
+                    </div>
+                    <div class="text-xs text-gray-400">رشته‌ها</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">🔢</div>
+                    <div
+                      style="color: #79c0ff; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      integer
+                    </div>
+                    <div class="text-xs text-gray-400">اعداد صحیح</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">🔴</div>
+                    <div
+                      style="color: #ff7b72; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      boolean
+                    </div>
+                    <div class="text-xs text-gray-400">true/false</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">⚫</div>
+                    <div
+                      style="color: #8b949e; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      null
+                    </div>
+                    <div class="text-xs text-gray-400">تهی</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">📦</div>
+                    <div
+                      style="color: #ffa657; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      array
+                    </div>
+                    <div class="text-xs text-gray-400">آرایه‌ها</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">🧩</div>
+                    <div
+                      style="color: #d2a8ff; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      object
+                    </div>
+                    <div class="text-xs text-gray-400">اشیاء</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">🟢</div>
+                    <div
+                      style="color: #7ee787; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      resource
+                    </div>
+                    <div class="text-xs text-gray-400">منابع</div>
+                  </div>
+                  <div
+                    class="bg-gray-900 p-4 rounded-xl text-center border-2 border-gray-700"
+                  >
+                    <div class="text-3xl mb-2">💎</div>
+                    <div
+                      style="color: #a5d6ff; font-weight: bold"
+                      class="text-sm mb-1"
+                    >
+                      float
+                    </div>
+                    <div class="text-xs text-gray-400">اعشاری</div>
+                  </div>
+                </div>
+
+                <div
+                  class="mt-6 bg-cyan-50 border-r-4 border-cyan-500 p-4 rounded-lg"
+                >
+                  <p class="text-cyan-900 font-bold mb-1">💡 نکته:</p>
+                  <p class="text-cyan-800 text-sm">
+                    همچنین properties خصوصی با
+                    <span style="color: #ff7b72">-</span>، محافظت‌شده با
+                    <span style="color: #ffa657">#</span> و عمومی با
+                    <span style="color: #7ee787">+</span> نمایش داده می‌شوند.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============ QUICK REFERENCE CARD ============ -->
+          <section class="scroll-mt-8">
+            <div
+              class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl shadow-2xl p-8 text-white"
+            >
+              <h2 class="text-3xl font-black mb-6 text-center">
+                📋 کارت مرجع سریع
+              </h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >dd($var)</code
+                  >
+                  <p class="text-sm text-white/80">نمایش + توقف</p>
+                </div>
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >dump($var)</code
+                  >
+                  <p class="text-sm text-white/80">نمایش + ادامه</p>
+                </div>
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >d($var)</code
+                  >
+                  <p class="text-sm text-white/80">کوتاه dump</p>
+                </div>
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >sql($q, $p)</code
+                  >
+                  <p class="text-sm text-white/80">نمایش کوئری SQL</p>
+                </div>
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >trace()</code
+                  >
+                  <p class="text-sm text-white/80">Call Stack</p>
+                </div>
+                <div
+                  class="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20"
+                >
+                  <code class="text-lg font-bold block mb-2 font-mono"
+                    >dd($a, $b, $c)</code
+                  >
+                  <p class="text-sm text-white/80">چند متغیر همزمان</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="bg-gray-900 text-gray-400 py-8 mt-12">
+      <div class="max-w-6xl mx-auto px-6 text-center">
+        <div class="text-4xl mb-3">🐞</div>
+        <p class="text-lg font-bold text-white mb-2">UNO Tracker Debug Tools</p>
+        <p class="text-sm mb-4">ساخته شده با ❤️ برای توسعه‌دهندگان</p>
+        <div class="flex justify-center gap-4 text-xs">
+          <span class="px-3 py-1 bg-gray-800 rounded-full">PHP 8.1+</span>
+          <span class="px-3 py-1 bg-gray-800 rounded-full">Tailwind CSS</span>
+          <span class="px-3 py-1 bg-gray-800 rounded-full">Dark Theme</span>
+          <span class="px-3 py-1 bg-gray-800 rounded-full">RTL Support</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Copy code function
+      function copyCode(btn) {
+        const codeBlock = btn.closest(".code-block");
+        const code = codeBlock.querySelector(".code-content").innerText;
+
+        navigator.clipboard
+          .writeText(code)
+          .then(() => {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "✅ کپی شد!";
+            btn.classList.add("copied");
+
+            setTimeout(() => {
+              btn.innerHTML = originalText;
+              btn.classList.remove("copied");
+            }, 2000);
+          })
+          .catch((err) => {
+            alert("خطا در کپی کردن: " + err);
+          });
+      }
+
+      // Smooth scroll for TOC
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute("href"));
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

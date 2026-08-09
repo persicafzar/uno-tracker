@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎨 راهنمای توابع Debug - UNO Tracker</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :root {
+        --bg-primary: #0d1117;
+        --bg-secondary: #161b22;
+        --bg-tertiary: #1f262e;
+        --border-color: #30363d;
+        --text-primary: #c9d1d9;
+        --text-secondary: #8b949e;
+        --accent-blue: #58a6ff;
+        --accent-purple: #d2a8ff;
+        --accent-orange: #ffa657;
+        --accent-pink: #e879a0;
+        --accent-red: #ff7b72;
+        --accent-green: #7ee787;
+        --accent-cyan: #79c0ff;
+        --light-bg: #f6f8fa;
+        --light-text: #24292e;
+    }
+
+    body {
+        font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        color: var(--light-text);
+        line-height: 1.8;
+        min-height: 100vh;
+    }
+
+    /* ===== Header ===== */
+    .hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        margin-bottom: 15px;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .hero .subtitle {
+        font-size: 1.2rem;
+        opacity: 0.95;
+        margin-bottom: 25px;
+    }
+
+    .hero-badges {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .hero-badge {
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* ===== Navigation ===== */
+    .nav-sticky {
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 15px 0;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .nav-link {
+        padding: 8px 16px;
+        background: #f1f3f5;
+        color: #495057;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .nav-link:hover {
+        background: #e7f5ff;
+        color: #1971c2;
+        border-color: #74c0fc;
+        transform: translateY(-2px);
+    }
+
+    /* ===== Main Container ===== */
+    .container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    /* ===== Section ===== */
+    .section {
+        background: white;
+        border-radius: 16px;
+        padding: 35px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border: 1px solid #e9ecef;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #212529;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #e7f5ff;
+    }
+
+    .section-title .icon {
+        font-size: 2rem;
+    }
+
+    /* ===== Function Cards ===== */
+    .func-card {
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border-right: 6px solid;
+        transition: all 0.3s;
+    }
+
+    .func-card:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .func-card.dd {
+        background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+        border-right-color: #fa5252;
+    }
+
+    .func-card.dump {
+        background: linear-gradient(135deg, #f3f0ff 0%, #e5dbff 100%);
+        border-right-color: #7048e8;
+    }
+
+    .func-card.d {
+        background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+        border-right-color: #1c7ed6;
+    }
+
+    .func-card.sql {
+        background: linear-gradient(135deg, #e6fcf5 0%, #c3fae8 100%);
+        border-right-color: #0ca678;
+    }
+
+    .func-card.trace {
+        background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+        border-right-color: #e8590c;
+    }
+
+    .func-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .func-name {
+        font-size: 1.5rem;
+        font-weight: 800;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        direction: ltr;
+        display: inline-block;
+    }
+
+    .func-tag {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .func-card.dd .func-name { color: #c92a2a; }
+    .func-card.dump .func-name { color: #5f3dc4; }
+    .func-card.d .func-name { color: #1864ab; }
+    .func-card.sql .func-name { color: #087f5b; }
+    .func-card.trace .func-name { color: #d9480f; }
+
+    .func-card.dd .func-tag { background: #fa5252; }
+    .func-card.dump .func-tag { background: #7048e8; }
+    .func-card.d .func-tag { background: #1c7ed6; }
+    .func-card.sql .func-tag { background: #0ca678; }
+    .func-card.trace .func-tag { background: #e8590c; }
+
+    /* ===== Code Blocks ===== */
+    .code-block {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border-radius: 10px;
+        padding: 18px;
+        font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        overflow-x: auto;
+        direction: ltr;
+        text-align: left;
+        margin: 15px 0;
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    .code-block::before {
+        content: 'PHP';
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        background: var(--bg-tertiary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        letter-spacing: 1px;
+    }
+
+    .code-block .comment { color: #8b949e; font-style: italic; }
+    .code-block .keyword { color: #ff7b72; font-weight: bold; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .number { color: #79c0ff; }
+    .code-block .func { color: #d2a8ff; }
+    .code-block .var { color: #ffa657; }
+    .code-block .arrow { color: #ff7b72; }
+
+    /* ===== Demo Output ===== */
+    .demo-output {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border-radius: 10px;
+        margin: 15px 0;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        direction: ltr;
+        text-align: left;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+    }
+
+    .demo-header {
+        background: linear-gradient(90deg, #161b22, #1f262e);
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+    }
+
+    .demo-title {
+        font-weight: 700;
+        color: #f0f6fc;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .demo-badge {
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .demo-badge.die { background: #da3633; }
+    .demo-badge.dump { background: #238636; }
+    .demo-badge.sql { background: #1f6feb; }
+
+    .demo-body {
+        padding: 16px;
+        max-height: 350px;
+        overflow: auto;
+    }
+
+    .demo-var {
+        margin-bottom: 12px;
+        padding: 12px;
+        background: #161b22;
+        border-radius: 8px;
+        border-left: 3px solid #58a6ff;
+    }
+
+    .demo-var-label {
+        font-size: 0.75rem;
+        color: #8b949e;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .demo-info {
+        font-size: 0.75rem;
+        color: #8b949e;
+    }
+
+    .t-str { color: #e879a0; }
+    .t-int { color: #6cb6ff; }
+    .t-bool { color: #ff7b72; font-weight: bold; }
+    .t-null { color: #8b949e; font-weight: bold; }
+    .t-arr { color: #ffa657; }
+    .t-obj { color: #d2a8ff; }
+    .t-key { color: #ffa657; }
+    .t-num { color: #79c0ff; font-weight: bold; }
+    .t-string-val { color: #a5d6ff; }
+    .t-count { color: #8b949e; }
+
+    .demo-toggle {
+        color: #58a6ff;
+        text-decoration: none;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+
+    .nested {
+        margin-right: 20px;
+        border-right: 2px solid #30363d;
+        padding-right: 12px;
+        margin-top: 4px;
+    }
+
+    /* ===== Feature Grid ===== */
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .feature-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border-color: #74c0fc;
+    }
+
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 10px;
+    }
+
+    .feature-title {
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #212529;
+    }
+
+    .feature-desc {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    /* ===== Color Palette ===== */
+    .color-palette {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .color-item {
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--bg-primary);
+        color: white;
+        text-align: center;
+        font-family: monospace;
+        direction: ltr;
+    }
+
+    /* ===== Table ===== */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .info-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px;
+        text-align: right;
+        font-weight: 700;
+    }
+
+    .info-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .info-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .info-table code {
+        background: #f1f3f5;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        direction: ltr;
+        display: inline-block;
+        color: #c92a2a;
+    }
+
+    /* ===== Warning Box ===== */
+    .warning-box {
+        background: linear-gradient(135deg, #fff3bf 0%, #ffec99 100%);
+        border: 2px solid #ffd43b;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .warning-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    .warning-title {
+        font-weight: 800;
+        color: #e67700;
+        margin-bottom: 8px;
+    }
+
+    /* ===== Tip Box ===== */
+    .tip-box {
+        background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+        border: 2px solid #51cf66;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .tip-title {
+        font-weight: 800;
+        color: #2b8a3e;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* ===== Install Steps ===== */
+    .install-steps {
+        counter-reset: step-counter;
+        list-style: none;
+    }
+
+    .install-steps li {
+        counter-increment: step-counter;
+        position: relative;
+        padding: 15px 15px 15px 60px;
+        margin-bottom: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border-right: 4px solid #1c7ed6;
+    }
+
+    .install-steps li::before {
+        content: counter(step-counter);
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #1c7ed6, #1971c2);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        box-shadow: 0 4px 10px rgba(28, 126, 214, 0.3);
+    }
+
+    /* ===== Cheat Sheet ===== */
+    .cheat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .cheat-item {
+        background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+        color: var(--text-primary);
+        padding: 18px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        direction: ltr;
+        text-align: left;
+    }
+
+    .cheat-item .label {
+        color: var(--accent-pink);
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        direction: rtl;
+        text-align: right;
+    }
+
+    .cheat-item code {
+        display: block;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        color: var(--accent-orange);
+        margin-top: 8px;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+        background: linear-gradient(135deg, #212529 0%, #343a40 100%);
+        color: white;
+        padding: 30px 20px;
+        text-align: center;
+        margin-top: 40px;
+    }
+
+    .footer-credit {
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-size: 1.1rem;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+        .hero h1 { font-size: 2rem; }
+        .hero .subtitle { font-size: 1rem; }
+        .section { padding: 20px; }
+        .section-title { font-size: 1.4rem; }
+        .func-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    /* Scrollbar */
+    .code-block::-webkit-scrollbar,
+    .demo-body::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+    }
+
+    .code-block::-webkit-scrollbar-track,
+    .demo-body::-webkit-scrollbar-track {
+        background: #0d1117;
+    }
+
+    .code-block::-webkit-scrollbar-thumb,
+    .demo-body::-webkit-scrollbar-thumb {
+        background: #30363d;
+        border-radius: 4px;
+    }
+
+    .badge-inline {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: white;
+        vertical-align: middle;
+    }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+    <div class="hero-content">
+        <h1>🎨 راهنمای توابع Debug</h1>
+        <p class="subtitle">سیستم پیشرفته دیباگ مشابه Laravel dd() برای UNO Tracker</p>
+        <div class="hero-badges">
+            <span class="hero-badge">⚡ ۵ تابع قدرتمند</span>
+            <span class="hero-badge">🎨 Dark Theme</span>
+            <span class="hero-badge">🔐 Reflection Support</span>
+            <span class="hero-badge">📱 AJAX-Safe</span>
+        </div>
+    </div>
+</div>
+
+<!-- ===== NAVIGATION ===== -->
+<div class="nav-sticky">
+    <div class="nav-container">
+        <a href="#intro" class="nav-link">📖 معرفی</a>
+        <a href="#install" class="nav-link">⚙️ نصب</a>
+        <a href="#dd" class="nav-link">🔴 dd()</a>
+        <a href="#dump" class="nav-link">🟢 dump()</a>
+        <a href="#d" class="nav-link">🔵 d()</a>
+        <a href="#sql" class="nav-link">🟣 sql()</a>
+        <a href="#trace" class="nav-link">🟠 trace()</a>
+        <a href="#examples" class="nav-link">💡 مثال‌ها</a>
+        <a href="#colors" class="nav-link">🎨 رنگ‌ها</a>
+        <a href="#security" class="nav-link">🛡️ امنیت</a>
+        <a href="#cheat" class="nav-link">📋 Cheat Sheet</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- ===== INTRO ===== -->
+    <section class="section" id="intro">
+        <h2 class="section-title">
+            <span class="icon">📖</span>
+            معرفی توابع
+        </h2>
+        <p>این سیستم شامل ۵ تابع کمکی برای دیباگ حرفه‌ای است که با تم تاریک زیبا و قابلیت‌های پیشرفته طراحی شده‌اند. هر تابع کاربرد خاص خود را دارد:</p>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔴</div>
+                <div class="feature-title">dd()</div>
+                <div class="feature-desc">Dump and Die - نمایش و توقف اجرا</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🟢</div>
+                <div class="feature-title">dump()</div>
+                <div class="feature-desc">فقط نمایش، ادامه اجرای کد</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔵</div>
+                <div class="feature-title">d()</div>
+                <div class="feature-desc">Alias کوتاه برای dump</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🟣</div>
+                <div class="feature-title">sql()</div>
+                <div class="feature-desc">نمایش کوئری با syntax highlighting</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🟠</div>
+                <div class="feature-title">trace()</div>
+                <div class="feature-desc">نمایش Call Stack کامل</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== INSTALL ===== -->
+    <section class="section" id="install">
+        <h2 class="section-title">
+            <span class="icon">⚙️</span>
+            راه‌اندازی
+        </h2>
+        <p>برای استفاده از این توابع در کل پروژه، فقط کافیست یک بار فایل Helpers را لود کنید:</p>
+        
+        <ol class="install-steps">
+            <li>
+                <strong>ایجاد فایل</strong>
+                <div class="code-block">
+<span class="comment">// src/Core/Helpers.php</span>
+<span class="comment">// محتوای کامل فایل Helpers را در این مسیر قرار دهید</span>
+                </div>
+            </li>
+            <li>
+                <strong>لود در index.php</strong> - این خط را بعد از Autoloader اضافه کنید:
+                <div class="code-block">
+<span class="comment">// public/index.php</span>
+<span class="keyword">require_once</span> SRC_PATH . <span class="string">'/Core/Autoloader.php'</span>;
+Core\<span class="func">Autoloader</span>::<span class="func">register</span>();
+
+<span class="comment">// 🆕 لود توابع کمکی</span>
+<span class="keyword">require_once</span> SRC_PATH . <span class="string">'/Core/Helpers.php'</span>;
+                </div>
+            </li>
+            <li>
+                <strong>تمام!</strong> حالا در هر جای پروژه می‌توانید استفاده کنید:
+                <div class="code-block">
+<span class="func">dd</span>(<span class="var">$user</span>);
+<span class="func">dump</span>(<span class="var">$games</span>, <span class="var">$stats</span>);
+<span class="func">sql</span>(<span class="var">$query</span>, <span class="var">$params</span>);
+                </div>
+            </li>
+        </ol>
+
+        <div class="tip-box">
+            <div class="tip-title">💡 نکته</div>
+            <p>از آنجا که توابع در namespace نیستند (global)، در هر namespace ای بدون نیاز به use قابل استفاده هستند!</p>
+        </div>
+    </section>
+
+    <!-- ===== dd() ===== -->
+    <section class="section" id="dd">
+        <div class="func-card dd">
+            <div class="func-header">
+                <span class="func-name">dd(...$vars)</span>
+                <span class="func-tag">🛑 STOP</span>
+            </div>
+            <p><strong>مخفف "Dump and Die"</strong> - متغیرها را نمایش می‌دهد و سپس اجرای اسکریپت را <strong>متوقف</strong> می‌کند. دقیقاً مشابه Laravel.</p>
+            
+            <h3 style="margin-top:20px; margin-bottom:10px; color:#c92a2a;">📝 مثال ۱: دیباگ یک متغیر</h3>
+            <div class="code-block">
+<span class="keyword">public function</span> <span class="func">show</span>(<span class="var">$id</span>) {
+    <span class="var">$user</span> = <span class="var">$this</span><span class="arrow">-></span>userService<span class="arrow">-></span><span class="func">getById</span>(<span class="var">$id</span>);
+    
+    <span class="func">dd</span>(<span class="var">$user</span>); <span class="comment">// 🛑 اینجا کد متوقف می‌شود</span>
+    
+    <span class="comment">// ❌ این خط هرگز اجرا نمی‌شود</span>
+    <span class="keyword">return</span> <span class="func">view</span>(<span class="string">'profile'</span>);
+}
+            </div>
+
+            <div class="demo-output">
+                <div class="demo-header">
+                    <div class="demo-title">
+                        🔍 Debug Output
+                        <span class="demo-badge die">DIE</span>
+                        <span style="color:#8b949e">(1 variable)</span>
+                    </div>
+                    <div class="demo-info">📁 <strong>UserController.php</strong>:42</div>
+                </div>
+                <div class="demo-body">
+                    <div class="demo-var">
+                        <div class="demo-var-label">#0 @ UserController.php:42</div>
+                        <span class="t-obj">object</span>(<span style="color:#d2a8ff;font-weight:bold">Application\Domain\User</span>)
+                        <a class="demo-toggle">[▼ toggle]</a>
+                        <div class="nested">
+                            <div><span style="color:#7ee787">+</span> <span class="t-key">$id</span>: <span class="t-int">integer</span> <span class="t-num">42</span></div>
+                            <div><span style="color:#7ee787">+</span> <span class="t-key">$nickname</span>: <span class="t-str">string</span><span class="t-count">(5)</span> <span class="t-string-val">"Admin"</span></div>
+                            <div><span style="color:#7ee787">+</span> <span class="t-key">$phone</span>: <span class="t-str">string</span><span class="t-count">(11)</span> <span class="t-string-val">"09123456789"</span></div>
+                            <div><span style="color:#ffa657">#</span> <span class="t-key">$email</span>: <span class="t-null">null</span></div>
+                            <div><span style="color:#ff7b72">-</span> <span class="t-key">$password</span>: <span class="t-str">string</span><span class="t-count">(60)</span> <span class="t-string-val">"$2y$10$..."</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-top:20px; margin-bottom:10px; color:#c92a2a;">📝 مثال ۲: چند متغیر همزمان</h3>
+            <div class="code-block">
+<span class="func">dd</span>(<span class="var">$user</span>, <span class="var">$games</span>, <span class="var">$stats</span>, [<span class="string">'total'</span> <span class="arrow">=></span> <span class="func">count</span>(<span class="var">$games</span>)]);
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== dump() ===== -->
+    <section class="section" id="dump">
+        <div class="func-card dump">
+            <div class="func-header">
+                <span class="func-name">dump(...$vars)</span>
+                <span class="func-tag">👁 CONTINUE</span>
+            </div>
+            <p>مانند <code>dd()</code> است ولی <strong>کد ادامه پیدا می‌کند</strong>. برای دیدن چند متغیر در طول اجرای برنامه عالی است.</p>
+            
+            <h3 style="margin-top:20px; margin-bottom:10px; color:#5f3dc4;">📝 مثال: دیباگ در طول پردازش</h3>
+            <div class="code-block">
+<span class="keyword">public function</span> <span class="func">store</span>(<span class="var">$request</span>) {
+    <span class="var">$data</span> = <span class="var">$request</span><span class="arrow">-></span><span class="func">all</span>();
+    <span class="func">dump</span>(<span class="var">$data</span>); <span class="comment">// 👁 نمایش و ادامه</span>
+    
+    <span class="var">$validated</span> = <span class="var">$this</span><span class="arrow">-></span><span class="func">validate</span>(<span class="var">$data</span>);
+    <span class="func">dump</span>(<span class="var">$validated</span>); <span class="comment">// 👁 بعد از ولیدیشن</span>
+    
+    <span class="var">$result</span> = <span class="var">$this</span><span class="arrow">-></span>service<span class="arrow">-></span><span class="func">save</span>(<span class="var">$validated</span>);
+    <span class="func">dump</span>(<span class="var">$result</span>); <span class="comment">// 👁 نتیجه نهایی</span>
+    
+    <span class="keyword">return</span> <span class="func">redirect</span>(<span class="string">'/success'</span>); <span class="comment">// ✅ اجرا می‌شود!</span>
+}
+            </div>
+
+            <div class="tip-box">
+                <div class="tip-title">💡 کی از dump استفاده کنیم؟</div>
+                <ul style="margin-top:8px; padding-right:20px;">
+                    <li>وقتی می‌خواهید چند مرحله را پشت هم ببینید</li>
+                    <li>برای لاگ زدن بدون توقف برنامه</li>
+                    <li>در حلقه‌ها برای دیدن تغییرات متغیر</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== d() ===== -->
+    <section class="section" id="d">
+        <div class="func-card d">
+            <div class="func-header">
+                <span class="func-name">d(...$vars)</span>
+                <span class="func-tag">⚡ SHORTCUT</span>
+            </div>
+            <p>Alias کوتاه <code>dump()</code> - برای تایپ سریع‌تر در حین کدنویسی.</p>
+            
+            <div class="code-block">
+<span class="comment">// این دو خط کاملاً یکسان هستند:</span>
+<span class="func">dump</span>(<span class="var">$user</span>);
+<span class="func">d</span>(<span class="var">$user</span>);
+
+<span class="comment">// حتی برای چند متغیر:</span>
+<span class="func">d</span>(<span class="var">$a</span>, <span class="var">$b</span>, <span class="var">$c</span>);
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== sql() ===== -->
+    <section class="section" id="sql">
+        <div class="func-card sql">
+            <div class="func-header">
+                <span class="func-name">sql($query, $params = [])</span>
+                <span class="func-tag">🗄️ SQL</span>
+            </div>
+            <p>نمایش زیبا از کوئری SQL با <strong>syntax highlighting</strong> و لیست پارامترها.</p>
+            
+            <h3 style="margin-top:20px; margin-bottom:10px; color:#087f5b;">📝 مثال: در Repository</h3>
+            <div class="code-block">
+<span class="keyword">public function</span> <span class="func">getActiveUsers</span>(<span class="var">$limit</span>) {
+    <span class="var">$query</span> = <span class="string">"SELECT id, nickname, phone 
+             FROM users 
+             WHERE status = ? 
+             AND created_at > ?
+             ORDER BY created_at DESC 
+             LIMIT ?"</span>;
+    
+    <span class="var">$params</span> = [<span class="string">'active'</span>, <span class="string">'2026-01-01'</span>, <span class="var">$limit</span>];
+    
+    <span class="func">sql</span>(<span class="var">$query</span>, <span class="var">$params</span>); <span class="comment">// 🗄️ نمایش کوئری</span>
+    
+    <span class="keyword">return</span> <span class="var">$this</span><span class="arrow">-></span>db<span class="arrow">-></span><span class="func">fetchAll</span>(<span class="var">$query</span>, <span class="var">$params</span>);
+}
+            </div>
+
+            <div class="demo-output">
+                <div class="demo-header">
+                    <div class="demo-title">
+                        🗄️ SQL Query
+                        <span class="demo-badge sql">EXECUTE</span>
+                    </div>
+                    <div class="demo-info">@ UserRepository.php:58</div>
+                </div>
+                <div class="demo-body" style="white-space:pre-wrap;">
+<span style="color:#ff7b72;font-weight:bold">SELECT</span> id, nickname, phone 
+<span style="color:#ff7b72;font-weight:bold">FROM</span> users 
+<span style="color:#ff7b72;font-weight:bold">WHERE</span> status = <span style="color:#ffa657;font-weight:bold">?</span> 
+<span style="color:#ff7b72;font-weight:bold">AND</span> created_at > <span style="color:#ffa657;font-weight:bold">?</span>
+<span style="color:#ff7b72;font-weight:bold">ORDER BY</span> created_at <span style="color:#ff7b72;font-weight:bold">DESC</span> 
+<span style="color:#ff7b72;font-weight:bold">LIMIT</span> <span style="color:#ffa657;font-weight:bold">?</span>
+
+<div style="margin-top:12px;padding-top:12px;border-top:1px solid #30363d">
+<div style="color:#ffa657;font-size:0.85rem;margin-bottom:4px">PARAMETERS (3):</div>
+<div><span style="color:#79c0ff">[0]</span> <span style="color:#8b949e">(string)</span> = <span style="color:#a5d6ff">"active"</span></div>
+<div><span style="color:#79c0ff">[1]</span> <span style="color:#8b949e">(string)</span> = <span style="color:#a5d6ff">"2026-01-01"</span></div>
+<div><span style="color:#79c0ff">[2]</span> <span style="color:#8b949e">(integer)</span> = <span style="color:#79c0ff">10</span></div>
+</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== trace() ===== -->
+    <section class="section" id="trace">
+        <div class="func-card trace">
+            <div class="func-header">
+                <span class="func-name">trace()</span>
+                <span class="func-tag">📍 STACK</span>
+            </div>
+            <p>نمایش <strong>Call Stack</strong> - مسیری که کد طی کرده تا به این نقطه برسد. عالی برای فهمیدن جریان برنامه.</p>
+            
+            <div class="code-block">
+<span class="keyword">public function</span> <span class="func">calculateXP</span>(<span class="var">$userId</span>) {
+    <span class="func">trace</span>(); <span class="comment">// 📍 چه کسی این متد را صدا زد؟</span>
+    
+    <span class="comment">// ... محاسبات</span>
+}
+            </div>
+
+            <div class="demo-output">
+                <div class="demo-header">
+                    <div class="demo-title">
+                        📍 Call Stack
+                        <span class="demo-badge" style="background:#f0883e">TRACE</span>
+                        <span style="color:#8b949e">(5 frames)</span>
+                    </div>
+                </div>
+                <div class="demo-body">
+                    <div style="padding:4px 8px;border-right:2px solid #30363d;margin:2px 0">
+                        <span style="color:#8b949e">#0</span> <span style="color:#d2a8ff">calculateXP()</span> at <span style="color:#79c0ff">GamificationService.php:85</span>
+                    </div>
+                    <div style="padding:4px 8px;border-right:2px solid #30363d;margin:2px 0">
+                        <span style="color:#8b949e">#1</span> <span style="color:#d2a8ff">GameController->store()</span> at <span style="color:#79c0ff">GameController.php:124</span>
+                    </div>
+                    <div style="padding:4px 8px;border-right:2px solid #30363d;margin:2px 0">
+                        <span style="color:#8b949e">#2</span> <span style="color:#d2a8ff">Router->dispatch()</span> at <span style="color:#79c0ff">Router.php:78</span>
+                    </div>
+                    <div style="padding:4px 8px;border-right:2px solid #30363d;margin:2px 0">
+                        <span style="color:#8b949e">#3</span> <span style="color:#d2a8ff">require_once()</span> at <span style="color:#79c0ff">index.php:54</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== EXAMPLES ===== -->
+    <section class="section" id="examples">
+        <h2 class="section-title">
+            <span class="icon">💡</span>
+            مثال‌های کاربردی
+        </h2>
+
+        <h3 style="margin-bottom:10px; color:#212529;">🎯 ۱. دیباگ آرایه پیچیده</h3>
+        <div class="code-block">
+<span class="var">$data</span> = [
+    <span class="string">'users'</span> <span class="arrow">=></span> [
+        [<span class="string">'id'</span> <span class="arrow">=></span> <span class="number">1</span>, <span class="string">'name'</span> <span class="arrow">=></span> <span class="string">'Ali'</span>],
+        [<span class="string">'id'</span> <span class="arrow">=></span> <span class="number">2</span>, <span class="string">'name'</span> <span class="arrow">=></span> <span class="string">'Reza'</span>],
+    ],
+    <span class="string">'count'</span> <span class="arrow">=></span> <span class="number">2</span>,
+    <span class="string">'active'</span> <span class="arrow">=></span> <span class="keyword">true</span>,
+];
+
+<span class="func">dd</span>(<span class="var">$data</span>);
+        </div>
+
+        <div class="demo-output">
+            <div class="demo-header">
+                <div class="demo-title">🔍 Debug Output <span class="demo-badge die">DIE</span></div>
+            </div>
+            <div class="demo-body">
+                <div class="demo-var">
+                    <span class="t-arr">array</span><span class="t-count">(3)</span>
+                    <div class="nested">
+                        <div><span class="t-key">"users"</span> => <span class="t-arr">array</span><span class="t-count">(2)</span>
+                            <div class="nested">
+                                <div><span class="t-num">0</span> => <span class="t-arr">array</span><span class="t-count">(2)</span> [...]</div>
+                                <div><span class="t-num">1</span> => <span class="t-arr">array</span><span class="t-count">(2)</span> [...]</div>
+                            </div>
+                        </div>
+                        <div><span class="t-key">"count"</span> => <span class="t-int">integer</span> <span class="t-num">2</span></div>
+                        <div><span class="t-key">"active"</span> => <span class="t-bool">true</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:25px; margin-bottom:10px; color:#212529;">🎯 ۲. دیباگ در Controller</h3>
+        <div class="code-block">
+<span class="keyword">public function</span> <span class="func">login</span>(<span class="var">Request</span> <span class="var">$request</span>): <span class="keyword">void</span>
+{
+    <span class="var">$data</span> = <span class="var">$request</span><span class="arrow">-></span><span class="func">all</span>();
+    <span class="func">d</span>(<span class="var">$data</span>); <span class="comment">// 👁 ببینیم چه چیزی ارسال شده</span>
+    
+    <span class="var">$result</span> = <span class="var">$this</span><span class="arrow">-></span>auth<span class="arrow">-></span><span class="func">login</span>(<span class="var">$data</span>);
+    
+    <span class="keyword">if</span> (!<span class="var">$result</span>[<span class="string">'success'</span>]) {
+        <span class="func">dd</span>(<span class="var">$result</span>); <span class="comment">// 🛑 در صورت خطا متوقف شو</span>
+    }
+}
+        </div>
+
+        <h3 style="margin-top:25px; margin-bottom:10px; color:#212529;">🎯 ۳. دیباگ شرطی</h3>
+        <div class="code-block">
+<span class="comment">// فقط اگر کاربر ادمین است دیباگ کن</span>
+<span class="keyword">if</span> (<span class="var">$user</span>[<span class="string">'role'</span>] === <span class="string">'admin'</span>) {
+    <span class="func">dd</span>(<span class="var">$debugInfo</span>);
+}
+        </div>
+
+        <h3 style="margin-top:25px; margin-bottom:10px; color:#212529;">🎯 ۴. ترکیب با حلقه</h3>
+        <div class="code-block">
+<span class="keyword">foreach</span> (<span class="var">$games</span> <span class="keyword">as</span> <span class="var">$i</span> <span class="arrow">=></span> <span class="var">$game</span>) {
+    <span class="keyword">if</span> (<span class="var">$i</span> === <span class="number">0</span>) {
+        <span class="func">dump</span>(<span class="var">$game</span>); <span class="comment">// 👁 فقط اولی</span>
+    }
+}
+        </div>
+
+        <h3 style="margin-top:25px; margin-bottom:10px; color:#212529;">🎯 ۵. دیباگ Exception</h3>
+        <div class="code-block">
+<span class="keyword">try</span> {
+    <span class="var">$result</span> = <span class="func">riskyOperation</span>();
+} <span class="keyword">catch</span> (<span class="var">Throwable</span> <span class="var">$e</span>) {
+    <span class="func">dd</span>([
+        <span class="string">'message'</span> <span class="arrow">=></span> <span class="var">$e</span><span class="arrow">-></span><span class="func">getMessage</span>(),
+        <span class="string">'file'</span> <span class="arrow">=></span> <span class="var">$e</span><span class="arrow">-></span><span class="func">getFile</span>(),
+        <span class="string">'line'</span> <span class="arrow">=></span> <span class="var">$e</span><span class="arrow">-></span><span class="func">getLine</span>(),
+        <span class="string">'trace'</span> <span class="arrow">=></span> <span class="var">$e</span><span class="arrow">-></span><span class="func">getTraceAsString</span>(),
+    ]);
+}
+        </div>
+    </section>
+
+    <!-- ===== COLORS ===== -->
+    <section class="section" id="colors">
+        <h2 class="section-title">
+            <span class="icon">🎨</span>
+            پالت رنگی نوع داده‌ها
+        </h2>
+        <p>هر نوع داده رنگ مخصوص به خود را دارد تا تشخیص آن‌ها آسان باشد:</p>
+        
+        <div class="color-palette">
+            <div class="color-item" style="background:#e879a0">string</div>
+            <div class="color-item" style="background:#6cb6ff">integer</div>
+            <div class="color-item" style="background:#6cb6ff">float</div>
+            <div class="color-item" style="background:#ff7b72">boolean</div>
+            <div class="color-item" style="background:#8b949e">null</div>
+            <div class="color-item" style="background:#ffa657">array</div>
+            <div class="color-item" style="background:#d2a8ff">object</div>
+            <div class="color-item" style="background:#7ee787">resource</div>
+        </div>
+
+        <h3 style="margin-top:25px; margin-bottom:10px;">🔐 رنگ‌های visibility برای آبجکت‌ها:</h3>
+        <table class="info-table">
+            <thead>
+                <tr>
+                    <th>نماد</th>
+                    <th>معنی</th>
+                    <th>رنگ</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>+</code></td>
+                    <td>public property</td>
+                    <td style="color:#7ee787;font-weight:bold">سبز</td>
+                </tr>
+                <tr>
+                    <td><code>#</code></td>
+                    <td>protected property</td>
+                    <td style="color:#ffa657;font-weight:bold">نارنجی</td>
+                </tr>
+                <tr>
+                    <td><code>-</code></td>
+                    <td>private property</td>
+                    <td style="color:#ff7b72;font-weight:bold">قرمز</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- ===== SECURITY ===== -->
+    <section class="section" id="security">
+        <h2 class="section-title">
+            <span class="icon">🛡️</span>
+            نکات امنیتی
+        </h2>
+        
+        <div class="warning-box">
+            <div class="warning-icon">⚠️</div>
+            <div>
+                <div class="warning-title">هرگز در Production رها نکنید!</div>
+                <p>قبل از deployment، تمام فراخوانی‌های <code>dd()</code>, <code>dump()</code>, <code>sql()</code>, <code>trace()</code> را از کد حذف کنید. این توابع اطلاعات حساس را نمایش می‌دهند.</p>
+            </div>
+        </div>
+
+        <h3 style="margin:20px 0 10px;">🔍 پیدا کردن توابع Debug در پروژه</h3>
+        <div class="code-block">
+<span class="comment"># در ترمینال (Linux/Mac):</span>
+grep -rn <span class="string">"dd(\|dump(\|sql(\|trace("</span> src/ --include=<span class="string">"*.php"</span>
+
+<span class="comment"># در Windows PowerShell:</span>
+Get-ChildItem -Path src -Recurse -Filter *.php | 
+  Select-String -Pattern <span class="string">"dd\(|dump\(|sql\(|trace\("</span>
+        </div>
+
+        <h3 style="margin:20px 0 10px;">🎣 Git Pre-Commit Hook (پیشنهادی)</h3>
+        <p>فایل <code>.git/hooks/pre-commit</code> را ایجاد کنید:</p>
+        <div class="code-block">
+<span class="comment">#!/bin/bash</span>
+<span class="keyword">if</span> git diff --cached | grep -E <span class="string">"^\+.*(dd\(|dump\(|sql\(|trace\()"</span>; <span class="keyword">then</span>
+    <span class="keyword">echo</span> <span class="string">"⚠️  Debug functions found! Remove before commit."</span>
+    <span class="keyword">exit</span> <span class="number">1</span>
+<span class="keyword">fi</span>
+        </div>
+
+        <h3 style="margin:20px 0 10px;">🛡️ Environment-Based Debug</h3>
+        <p>می‌توانید توابع را شرطی کنید:</p>
+        <div class="code-block">
+<span class="comment">// فقط در development اجرا شود</span>
+<span class="keyword">if</span> (<span class="func">getenv</span>(<span class="string">'APP_DEBUG'</span>)) {
+    <span class="func">dd</span>(<span class="var">$data</span>);
+}
+        </div>
+    </section>
+
+    <!-- ===== CHEAT SHEET ===== -->
+    <section class="section" id="cheat">
+        <h2 class="section-title">
+            <span class="icon">📋</span>
+            Cheat Sheet
+        </h2>
+        <p>راهنمای سریع برای استفاده روزانه:</p>
+        
+        <div class="cheat-grid">
+            <div class="cheat-item">
+                <div class="label">نمایش یک متغیر و توقف</div>
+                <code>dd($user);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">نمایش چند متغیر</div>
+                <code>dd($a, $b, $c);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">نمایش بدون توقف</div>
+                <code>dump($data);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">Alias کوتاه</div>
+                <code>d($quick);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">نمایش کوئری SQL</div>
+                <code>sql($query, $params);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">نمایش Call Stack</div>
+                <code>trace();</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ آرایه inline</div>
+                <code>dd(['a' => 1]);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ شرطی</div>
+                <code>if($x) dd($x);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ در حلقه</div>
+                <code>foreach($a as $v) d($v);</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ Exception</div>
+                <code>dd($e->getMessage());</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ Request</div>
+                <code>dd($request->all());</code>
+            </div>
+            <div class="cheat-item">
+                <div class="label">دیباگ Session</div>
+                <code>dd($_SESSION);</code>
+            </div>
+        </div>
+
+        <div class="tip-box" style="margin-top:25px;">
+            <div class="tip-title">🎯 قانون طلایی</div>
+            <p><strong>dd()</strong> برای متوقف کردن و بررسی عمیق | <strong>dump()</strong> برای دیدن بدون توقف | <strong>sql()</strong> برای کوئری | <strong>trace()</strong> برای یافتن مسیر فراخوانی</p>
+        </div>
+    </section>
+
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer">
+    <p>🎨 ساخته شده با ❤️ برای</p>
+    <p class="footer-credit">UNO Tracker</p>
+    <p style="margin-top:10px; opacity:0.7;">طراحی و توسعه توسط <strong>حسن حمیدی قمر</strong></p>
+    <p style="margin-top:15px; font-size:0.85rem; opacity:0.5;">Built with PHP + Custom Debug System</p>
+</div>
+
+<script>
+// Smooth scroll for navigation
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Toggle nested items in demo outputs
+document.querySelectorAll('.demo-toggle').forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        const nested = this.parentElement.querySelector('.nested');
+        if (nested) {
+            if (nested.style.display === 'none') {
+                nested.style.display = 'block';
+                this.textContent = '[▼ toggle]';
+            } else {
+                nested.style.display = 'none';
+                this.textContent = '[▶ toggle]';
+            }
+        }
+    });
+});
+
+// Highlight active nav link on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-link');
+
+window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (scrollY >= sectionTop - 100) {
+            current = section.getAttribute('id');
+        }
+    });
+
+    navLinks.forEach(link => {
+        link.style.background = '#f1f3f5';
+        link.style.color = '#495057';
+        if (link.getAttribute('href') === '#' + current) {
+            link.style.background = '#1c7ed6';
+            link.style.color = 'white';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

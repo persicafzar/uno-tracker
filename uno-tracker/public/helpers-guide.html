@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 راهنمای Helpers.php | UNO Tracker</title>
+    
+    <!-- فونت Vazirmatn -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    
+    <style>
+        /* ============================================
+           Reset & Base
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-code: #0d1117;
+            --bg-light: #f8fafc;
+            
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --border: #334155;
+            --border-light: #e2e8f0;
+            
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        body {
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.8;
+            font-size: 16px;
+            overflow-x: hidden;
+        }
+        
+        /* ============================================
+           Header
+           ============================================ */
+        .hero {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            padding: 80px 20px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: float 20s linear infinite;
+        }
+        
+        @keyframes float {
+            from { transform: translate(0, 0); }
+            to { transform: translate(30px, 30px); }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            letter-spacing: -0.5px;
+        }
+        
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.8;
+        }
+        
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .hero-stat {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 120px;
+        }
+        
+        .hero-stat-value {
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+            display: block;
+        }
+        
+        .hero-stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 4px;
+        }
+        
+        /* ============================================
+           Container
+           ============================================ */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* ============================================
+           Table of Contents
+           ============================================ */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 50px;
+            box-shadow: var(--shadow);
+        }
+        
+        .toc-title {
+            font-size: 1.5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-light);
+        }
+        
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+        
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .toc-item:hover {
+            border-color: var(--primary);
+            transform: translateX(-4px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .toc-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        /* ============================================
+           Section
+           ============================================ */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            scroll-margin-top: 20px;
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .section-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .section-icon.debug { background: linear-gradient(135deg, #ef4444, #f97316); }
+        .section-icon.url { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+        .section-icon.env { background: linear-gradient(135deg, #10b981, #84cc16); }
+        .section-icon.security { background: linear-gradient(135deg, #f59e0b, #f97316); }
+        .section-icon.utility { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+        
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .section-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+        
+        /* ============================================
+           Function Card
+           ============================================ */
+        .function-card {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .function-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .function-header {
+            padding: 20px 25px;
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1), transparent);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .function-name {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .function-name::before {
+            content: 'fn';
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: 900;
+        }
+        
+        .function-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        
+        .function-body {
+            padding: 25px;
+        }
+        
+        .function-description {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+        
+        .function-signature {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem;
+            color: #e879a0;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+        }
+        
+        /* ============================================
+           Code Block
+           ============================================ */
+        .code-block {
+            position: relative;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .code-header {
+            background: #161b22;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            direction: ltr;
+        }
+        
+        .code-dots {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .code-dot.red { background: #ff5f56; }
+        .code-dot.yellow { background: #ffbd2e; }
+        .code-dot.green { background: #27c93f; }
+        
+        .code-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+        
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .copy-btn.copied {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+        
+        .code-content {
+            padding: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #c9d1d9;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        /* Syntax Highlighting */
+        .token-keyword { color: #ff7b72; font-weight: bold; }
+        .token-string { color: #a5d6ff; }
+        .token-number { color: #79c0ff; }
+        .token-comment { color: #8b949e; font-style: italic; }
+        .token-function { color: #d2a8ff; }
+        .token-variable { color: #ffa657; }
+        .token-operator { color: #ff7b72; }
+        .token-output { color: #7ee787; background: rgba(126, 231, 135, 0.1); padding: 2px 6px; border-radius: 3px; }
+        
+        /* ============================================
+           Output Box
+           ============================================ */
+        .output-box {
+            background: #0a0e14;
+            border: 1px solid #30363d;
+            border-right: 4px solid var(--success);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--success);
+            direction: ltr;
+            text-align: left;
+        }
+        
+        .output-label {
+            display: inline-block;
+            background: var(--success);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* ============================================
+           Info Box
+           ============================================ */
+        .info-box {
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+            border: 1px solid;
+        }
+        
+        .info-box-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .info-box-content {
+            flex: 1;
+        }
+        
+        .info-box-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+        
+        .info-box-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+        
+        .info-box.tip {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+        
+        .info-box.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+        
+        .info-box.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+        
+        .info-box.info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+        
+        /* ============================================
+           Table
+           ============================================ */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-dark);
+        }
+        
+        th {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
+            color: var(--primary-light);
+            font-weight: 700;
+            padding: 15px 20px;
+            text-align: right;
+            border-bottom: 2px solid var(--border);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+            color: var(--text-primary);
+        }
+        
+        td code {
+            background: var(--bg-code);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--primary-light);
+            font-size: 0.85rem;
+            direction: ltr;
+            display: inline-block;
+        }
+        
+        /* ============================================
+           Examples Section
+           ============================================ */
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .example-card {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .example-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .example-title {
+            font-weight: 700;
+            color: var(--primary-light);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        
+        /* ============================================
+           Footer
+           ============================================ */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+        }
+        
+        .footer-author {
+            font-size: 1.1rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        
+        /* ============================================
+           Scrollbar
+           ============================================ */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+        
+        /* ============================================
+           Responsive
+           ============================================ */
+        @media (max-width: 768px) {
+            .section {
+                padding: 25px 20px;
+            }
+            
+            .hero {
+                padding: 60px 20px 80px;
+            }
+            
+            .hero-stats {
+                gap: 15px;
+            }
+            
+            .hero-stat {
+                min-width: 100px;
+                padding: 12px 18px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .function-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        /* ============================================
+           Animations
+           ============================================ */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .section, .toc {
+            animation: fadeInUp 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ============================================
+     HERO SECTION
+     ============================================ -->
+<header class="hero">
+    <div class="hero-content">
+        <span class="hero-badge">🚀 UNO Tracker Helpers</span>
+        <h1>📚 راهنمای کامل توابع کمکی</h1>
+        <p>
+            مجموعه‌ای کامل از توابع Helper برای افزایش سرعت و کیفیت توسعه پروژه
+            با الهام از Laravel و Symfony
+        </p>
+        
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">20+</span>
+                <div class="hero-stat-label">تابع کمکی</div>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">5</span>
+                <div class="hero-stat-label">دسته‌بندی</div>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">50+</span>
+                <div class="hero-stat-label">مثال کاربردی</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ============================================
+     MAIN CONTENT
+     ============================================ -->
+<div class="container">
+
+    <!-- Table of Contents -->
+    <div class="toc">
+        <h2 class="toc-title">🗂️ فهرست مطالب</h2>
+        <div class="toc-grid">
+            <a href="#debug" class="toc-item">
+                <span class="toc-icon">🐛</span>
+                <span>توابع Debug</span>
+            </a>
+            <a href="#url" class="toc-item">
+                <span class="toc-icon">🔗</span>
+                <span>توابع URL و Asset</span>
+            </a>
+            <a href="#env" class="toc-item">
+                <span class="toc-icon">🌍</span>
+                <span>Environment و Config</span>
+            </a>
+            <a href="#security" class="toc-item">
+                <span class="toc-icon">🛡️</span>
+                <span>توابع امنیتی</span>
+            </a>
+            <a href="#utility" class="toc-item">
+                <span class="toc-icon">⚙️</span>
+                <span>توابع Utility</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SECTION 1: DEBUG FUNCTIONS
+         ============================================ -->
+    <section id="debug" class="section">
+        <div class="section-header">
+            <div class="section-icon debug">🐛</div>
+            <div>
+                <h2 class="section-title">توابع Debug</h2>
+                <p class="section-subtitle">مشابه Laravel dd/dump برای دیباگ کردن سریع و زیبا</p>
+            </div>
+        </div>
+
+        <!-- dd() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">dd(...$vars)</div>
+                <div class="function-badges">
+                    <span class="badge badge-danger">DIE</span>
+                    <span class="badge badge-info">Laravel-Style</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    متغیرها را با فرمت زیبا نمایش می‌دهد و <strong>اجرای اسکریپت را متوقف می‌کند</strong>.
+                    برای دیباگ سریع و فوری عالی است.
+                </p>
+
+                <div class="function-signature">
+                    dd(mixed ...$vars): void
+                </div>
+
+                <h3 style="margin: 20px 0 12px; color: var(--primary-light);">📝 مثال‌ها:</h3>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// مثال ۱: نمایش یک متغیر</span>
+<span class="token-variable">$user</span> = [<span class="token-string">'name'</span> => <span class="token-string">'Ali'</span>, <span class="token-string">'age'</span> => <span class="token-number">25</span>];
+<span class="token-function">dd</span>(<span class="token-variable">$user</span>);
+<span class="token-comment">// ❌ کد اینجا متوقف می‌شود</span>
+
+<span class="token-comment">// مثال ۲: نمایش چند متغیر همزمان</span>
+<span class="token-variable">$games</span> = <span class="token-variable">$gameService</span>-><span class="token-function">getAll</span>();
+<span class="token-variable">$stats</span> = <span class="token-variable">$userService</span>-><span class="token-function">getStats</span>(<span class="token-number">1</span>);
+<span class="token-function">dd</span>(<span class="token-variable">$user</span>, <span class="token-variable">$games</span>, <span class="token-variable">$stats</span>);
+
+<span class="token-comment">// مثال ۳: نمایش آرایه‌های بزرگ</span>
+<span class="token-function">dd</span>(<span class="token-variable">$_SERVER</span>);
+<span class="token-function">dd</span>(<span class="token-variable">$_SESSION</span>);</div>
+                </div>
+
+                <div class="info-box tip">
+                    <div class="info-box-icon">💡</div>
+                    <div class="info-box-content">
+                        <div class="info-box-title">نکته</div>
+                        <div class="info-box-text">
+                            در حالت AJAX خالص، خروجی متنی ساده تولید می‌کند تا JSON خراب نشود.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- dump() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">dump(...$vars)</div>
+                <div class="function-badges">
+                    <span class="badge badge-success">CONTINUE</span>
+                    <span class="badge badge-info">Non-blocking</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    مانند <code>dd()</code> عمل می‌کند ولی <strong>اجرای کد ادامه پیدا می‌کند</strong>.
+                    برای دیباگ چند نقطه‌ای بدون توقف عالی است.
+                </p>
+
+                <div class="function-signature">
+                    dump(mixed ...$vars): void
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-function">dump</span>(<span class="token-string">'قبل از پردازش'</span>, <span class="token-variable">$data</span>);
+
+<span class="token-comment">// کد ادامه پیدا می‌کند...</span>
+<span class="token-variable">$result</span> = <span class="token-variable">$service</span>-><span class="token-function">process</span>(<span class="token-variable">$data</span>);
+
+<span class="token-function">dump</span>(<span class="token-string">'بعد از پردازش'</span>, <span class="token-variable">$result</span>);
+
+<span class="token-comment">// همچنان ادامه می‌یابد ✅</span>
+<span class="token-keyword">return</span> <span class="token-variable">$result</span>;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- d() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">d(...$vars)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">SHORTCUT</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    Alias کوتاه برای <code>dump()</code>. برای تایپ سریع‌تر.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-function">d</span>(<span class="token-variable">$user</span>); <span class="token-comment">// معادل dump($user)</span>
+<span class="token-function">d</span>(<span class="token-variable">$a</span>, <span class="token-variable">$b</span>, <span class="token-variable">$c</span>); <span class="token-comment">// چند متغیر</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- sql() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">sql($query, $params)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">SQL</span>
+                    <span class="badge badge-warning">HIGHLIGHT</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    کوئری SQL را با <strong>syntax highlighting</strong> زیبا نمایش می‌دهد.
+                    پارامترها را هم جداگانه نشان می‌دهد.
+                </p>
+
+                <div class="function-signature">
+                    sql(string $query, array $params = []): void
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-variable">$query</span> = <span class="token-string">"SELECT * FROM users WHERE id = ? AND status = ?"</span>;
+<span class="token-variable">$params</span> = [<span class="token-number">42</span>, <span class="token-string">'active'</span>];
+
+<span class="token-function">sql</span>(<span class="token-variable">$query</span>, <span class="token-variable">$params</span>);
+
+<span class="token-comment">// خروجی: کوئری با رنگ‌بندی keywords، strings، numbers</span>
+<span class="token-comment">// + لیست پارامترها با نوع هر کدام</span></div>
+                </div>
+
+                <div class="output-box">
+                    <div class="output-label">OUTPUT</div>
+                    <span style="color: #58a6ff;">🗄️ SQL Query</span> @ AuthController.php:45<br>
+                    <span style="color: #ff7b72; font-weight: bold;">SELECT</span> * <span style="color: #ff7b72; font-weight: bold;">FROM</span> users 
+                    <span style="color: #ff7b72; font-weight: bold;">WHERE</span> id = <span style="color: #ffa657; font-weight: bold;">?</span> 
+                    <span style="color: #ff7b72; font-weight: bold;">AND</span> status = <span style="color: #ffa657; font-weight: bold;">?</span><br><br>
+                    <span style="color: #ffa657;">PARAMETERS (2):</span><br>
+                    <span style="color: #79c0ff;">[0]</span> <span style="color: #8b949e;">(integer)</span> = <span style="color: #a5d6ff;">42</span><br>
+                    <span style="color: #79c0ff;">[1]</span> <span style="color: #8b949e;">(string)</span> = <span style="color: #a5d6ff;">"active"</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- trace() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">trace()</div>
+                <div class="function-badges">
+                    <span class="badge badge-warning">STACK</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    <strong>Call Stack</strong> کامل را نمایش می‌دهد. برای فهمیدن اینکه چگونه به این نقطه رسیده‌ایم.
+                </p>
+
+                <div class="function-signature">
+                    trace(): void
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-keyword">public function</span> <span class="token-function">calculateXP</span>(<span class="token-keyword">int</span> <span class="token-variable">$userId</span>): <span class="token-keyword">int</span> {
+    <span class="token-function">trace</span>(); <span class="token-comment">// چه مسیری طی شده؟</span>
+    
+    <span class="token-comment">// ... محاسبات</span>
+}</div>
+                </div>
+
+                <div class="output-box">
+                    <div class="output-label">OUTPUT</div>
+                    <span style="color: #f0883e; font-weight: bold;">📍 Call Stack (5 frames)</span><br>
+                    <span style="color: #8b949e;">#0</span> <span style="color: #d2a8ff;">ScoringService->calculateXP()</span> at <span style="color: #79c0ff;">ScoringService.php:42</span><br>
+                    <span style="color: #8b949e;">#1</span> <span style="color: #d2a8ff;">GameService->finishGame()</span> at <span style="color: #79c0ff;">GameService.php:312</span><br>
+                    <span style="color: #8b949e;">#2</span> <span style="color: #d2a8ff;">GameController->finish()</span> at <span style="color: #79c0ff;">GameController.php:88</span><br>
+                    <span style="color: #8b949e;">#3</span> <span style="color: #d2a8ff;">Router->dispatch()</span> at <span style="color: #79c0ff;">Router.php:128</span><br>
+                    <span style="color: #8b949e;">#4</span> <span style="color: #d2a8ff;">{main}()</span> at <span style="color: #79c0ff;">index.php:575</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         SECTION 2: URL FUNCTIONS
+         ============================================ -->
+    <section id="url" class="section">
+        <div class="section-header">
+            <div class="section-icon url">🔗</div>
+            <div>
+                <h2 class="section-title">توابع URL و Asset</h2>
+                <p class="section-subtitle">تولید URL های صحیح برای پروژه‌های با Subdirectory</p>
+            </div>
+        </div>
+
+        <div class="info-box info">
+            <div class="info-box-icon">ℹ️</div>
+            <div class="info-box-content">
+                <div class="info-box-title">چرا این توابع مهم هستند؟</div>
+                <div class="info-box-text">
+                    پروژه شما در <code>https://example.com/uno</code> قرار دارد.
+                    اگر مستقیم از <code>/dashboard</code> استفاده کنید، به آدرس اشتباه می‌روید.
+                    این توابع به صورت خودکار prefix درست را اضافه می‌کنند.
+                </div>
+            </div>
+        </div>
+
+        <!-- url() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">url($path, $params)</div>
+                <div class="function-badges">
+                    <span class="badge badge-success">ESSENTIAL</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    URL کامل را با در نظر گرفتن <code>BASE_URL</code> تولید می‌کند.
+                    پارامترهای GET را هم اضافه می‌کند.
+                </p>
+
+                <div class="function-signature">
+                    url(string $path = '', array $params = []): string
+                </div>
+
+                <h3 style="margin: 20px 0 12px; color: var(--primary-light);">📝 مثال‌های کاربردی:</h3>
+
+                <div class="examples-grid">
+                    <div class="example-card">
+                        <div class="example-title">🎯 URL ساده</div>
+                        <div class="code-block" style="margin: 0;">
+                            <div class="code-content"><span class="token-function">url</span>(<span class="token-string">'/dashboard'</span>);
+<span class="token-comment">// => https://example.com/uno/dashboard</span></div>
+                        </div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-title">👤 URL با پارامتر</div>
+                        <div class="code-block" style="margin: 0;">
+                            <div class="code-content"><span class="token-function">url</span>(<span class="token-string">'/users/123'</span>);
+<span class="token-comment">// => https://example.com/uno/users/123</span></div>
+                        </div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-title">🔍 URL با Query String</div>
+                        <div class="code-block" style="margin: 0;">
+                            <div class="code-content"><span class="token-function">url</span>(<span class="token-string">'/search'</span>, [
+    <span class="token-string">'q'</span> => <span class="token-string">'test'</span>,
+    <span class="token-string">'page'</span> => <span class="token-number">2</span>
+]);
+<span class="token-comment">// => .../search?q=test&page=2</span></div>
+                        </div>
+                    </div>
+
+                    <div class="example-card">
+                        <div class="example-title">🎮 URL بازی</div>
+                        <div class="code-block" style="margin: 0;">
+                            <div class="code-content"><span class="token-function">url</span>(<span class="token-string">'/game/'</span> . <span class="token-variable">$gameId</span>);
+<span class="token-comment">// => https://example.com/uno/game/96</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 25px 0 12px; color: var(--primary-light);">🌐 استفاده در View:</h3>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php + html</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">&lt;!-- لینک در Navigation --&gt;</span>
+&lt;<span class="token-keyword">a</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= url('/dashboard') ?&gt;"</span>&gt;داشبورد&lt;/<span class="token-keyword">a</span>&gt;
+
+<span class="token-comment">&lt;!-- لینک به پروفایل کاربر --&gt;</span>
+&lt;<span class="token-keyword">a</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= url('/users/' . $user['id']) ?&gt;"</span>&gt;
+    &lt;?= <span class="token-function">e</span>(<span class="token-variable">$user</span>[<span class="token-string">'nickname'</span>]) ?&gt;
+&lt;/<span class="token-keyword">a</span>&gt;
+
+<span class="token-comment">&lt;!-- فرم لاگین --&gt;</span>
+&lt;<span class="token-keyword">form</span> <span class="token-variable">method</span>=<span class="token-string">"POST"</span> <span class="token-variable">action</span>=<span class="token-string">"&lt;?= url('/login') ?&gt;"</span>&gt;
+    <span class="token-comment">&lt;!-- ... --&gt;</span>
+&lt;/<span class="token-keyword">form</span>&gt;</div>
+                </div>
+
+                <h3 style="margin: 25px 0 12px; color: var(--primary-light);">🎮 استفاده در Controller:</h3>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-keyword">public function</span> <span class="token-function">login</span>(<span class="token-variable">$request</span>): <span class="token-keyword">void</span> {
+    <span class="token-variable">$result</span> = <span class="token-variable">$this</span>-><span class="token-variable">auth</span>-><span class="token-function">login</span>(<span class="token-variable">$request</span>-><span class="token-function">all</span>());
+    
+    <span class="token-keyword">if</span> (<span class="token-variable">$result</span>[<span class="token-string">'success'</span>]) {
+        <span class="token-function">redirect</span>(<span class="token-function">url</span>(<span class="token-string">'/dashboard'</span>));
+    }
+    
+    <span class="token-function">redirect</span>(<span class="token-function">url</span>(<span class="token-string">'/login'</span>, [<span class="token-string">'error'</span> => <span class="token-string">'invalid'</span>]));
+}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- base_url() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">base_url()</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">BASE</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    URL پایه پروژه را برمی‌گرداند (بدون مسیر اضافی).
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-function">base_url</span>();
+<span class="token-comment">// => https://hamidionline.ir/uno</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- asset() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">asset($path)</div>
+                <div class="function-badges">
+                    <span class="badge badge-success">ESSENTIAL</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    URL فایل‌های استاتیک (CSS, JS, Images) را تولید می‌کند.
+                    به صورت خودکار <code>/assets/</code> را اضافه می‌کند.
+                </p>
+
+                <div class="function-signature">
+                    asset(string $path): string
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php + html</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">&lt;!-- CSS فایل‌ها --&gt;</span>
+&lt;<span class="token-keyword">link</span> <span class="token-variable">rel</span>=<span class="token-string">"stylesheet"</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= asset('css/app.css') ?&gt;"</span>&gt;
+&lt;<span class="token-keyword">link</span> <span class="token-variable">rel</span>=<span class="token-string">"stylesheet"</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= asset('css/mobile.css') ?&gt;"</span>&gt;
+
+<span class="token-comment">&lt;!-- JS فایل‌ها --&gt;</span>
+&lt;<span class="token-keyword">script</span> <span class="token-variable">src</span>=<span class="token-string">"&lt;?= asset('js/alpine.min.js') ?&gt;"</span>&gt;&lt;/<span class="token-keyword">script</span>&gt;
+&lt;<span class="token-keyword">script</span> <span class="token-variable">src</span>=<span class="token-string">"&lt;?= asset('js/htmx.min.js') ?&gt;"</span>&gt;&lt;/<span class="token-keyword">script</span>&gt;
+
+<span class="token-comment">&lt;!-- تصاویر --&gt;</span>
+&lt;<span class="token-keyword">img</span> <span class="token-variable">src</span>=<span class="token-string">"&lt;?= asset('images/logo.svg') ?&gt;"</span> <span class="token-variable">alt</span>=<span class="token-string">"Logo"</span>&gt;
+&lt;<span class="token-keyword">link</span> <span class="token-variable">rel</span>=<span class="token-string">"icon"</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= asset('images/favicon.ico') ?&gt;"</span>&gt;
+
+<span class="token-comment">&lt;!-- فونت‌ها --&gt;</span>
+&lt;<span class="token-keyword">style</span>&gt;
+@font-face {
+    font-family: <span class="token-string">'Vazir'</span>;
+    src: url(<span class="token-string">'&lt;?= asset('fonts/Vazir.woff2') ?&gt;'</span>) format(<span class="token-string">'woff2'</span>);
+}
+&lt;/<span class="token-keyword">style</span>&gt;</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- current_url() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">current_url($withQuery)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">UTILITY</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    URL فعلی صفحه را برمی‌گرداند (برای "بازگشت به این صفحه" یا analytics).
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-function">current_url</span>();
+<span class="token-comment">// => https://example.com/uno/dashboard?page=2&sort=desc</span>
+
+<span class="token-function">current_url</span>(<span class="token-keyword">false</span>);
+<span class="token-comment">// => https://example.com/uno/dashboard (بدون query)</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- previous_url() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">previous_url($fallback)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">UTILITY</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    URL صفحه قبلی (از HTTP Referer) را برمی‌گرداند.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// دکمه "بازگشت" در فرم</span>
+&lt;<span class="token-keyword">a</span> <span class="token-variable">href</span>=<span class="token-string">"&lt;?= previous_url('/') ?&gt;"</span>&gt;↩️ بازگشت&lt;/<span class="token-keyword">a</span>&gt;
+
+<span class="token-comment">// ریدایرکت به صفحه قبلی بعد از عملیات</span>
+<span class="token-function">redirect</span>(<span class="token-function">previous_url</span>(<span class="token-string">'/dashboard'</span>));</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         SECTION 3: ENV & CONFIG
+         ============================================ -->
+    <section id="env" class="section">
+        <div class="section-header">
+            <div class="section-icon env">🌍</div>
+            <div>
+                <h2 class="section-title">Environment و Config</h2>
+                <p class="section-subtitle">خواندن متغیرهای محیطی و فایل‌های پیکربندی</p>
+            </div>
+        </div>
+
+        <!-- env() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">env($key, $default)</div>
+                <div class="function-badges">
+                    <span class="badge badge-success">LARAVEL-STYLE</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    متغیرهای محیطی را می‌خواند و مقادیر خاص (<code>true</code>, <code>false</code>, <code>null</code>) را به صورت خودکار تبدیل می‌کند.
+                </p>
+
+                <div class="function-signature">
+                    env(string $key, mixed $default = null): mixed
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>مقدار در .env</th>
+                                <th>خروجی PHP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>true</code></td><td><code>true</code> (boolean)</td></tr>
+                            <tr><td><code>false</code></td><td><code>false</code> (boolean)</td></tr>
+                            <tr><td><code>null</code></td><td><code>null</code></td></tr>
+                            <tr><td><code>empty</code></td><td><code>''</code> (empty string)</td></tr>
+                            <tr><td><code>3306</code></td><td><code>"3306"</code> (string)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// خواندن متغیرهای مختلف</span>
+<span class="token-variable">$debug</span> = <span class="token-function">env</span>(<span class="token-string">'APP_DEBUG'</span>, <span class="token-keyword">false</span>);
+<span class="token-variable">$dbHost</span> = <span class="token-function">env</span>(<span class="token-string">'DB_HOST'</span>, <span class="token-string">'localhost'</span>);
+<span class="token-variable">$dbPort</span> = <span class="token-function">env</span>(<span class="token-string">'DB_PORT'</span>, <span class="token-string">'3306'</span>);
+<span class="token-variable">$appName</span> = <span class="token-function">env</span>(<span class="token-string">'APP_NAME'</span>, <span class="token-string">'UNO Tracker'</span>);</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- config() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">config($key, $default)</div>
+                <div class="function-badges">
+                    <span class="badge badge-success">LARAVEL-STYLE</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    تنظیمات را از فایل‌های <code>config/</code> می‌خواند با syntax نقطه‌ای (dot notation).
+                </p>
+
+                <div class="function-signature">
+                    config(string $key, mixed $default = null): mixed
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// خواندن از config/app.php</span>
+<span class="token-function">config</span>(<span class="token-string">'app.name'</span>);           <span class="token-comment">// => 'UNO Tracker'</span>
+<span class="token-function">config</span>(<span class="token-string">'app.version'</span>, <span class="token-string">'1.0.0'</span>);
+<span class="token-function">config</span>(<span class="token-string">'app.super_admin_id'</span>); <span class="token-comment">// => 1</span>
+
+<span class="token-comment">// خواندن از config/database.php</span>
+<span class="token-function">config</span>(<span class="token-string">'database.host'</span>, <span class="token-string">'localhost'</span>);
+<span class="token-function">config</span>(<span class="token-string">'database.name'</span>);
+<span class="token-function">config</span>(<span class="token-string">'database.username'</span>);
+
+<span class="token-comment">// خواندن از config/melipayamak.php</span>
+<span class="token-function">config</span>(<span class="token-string">'melipayamak.username'</span>);
+<span class="token-function">config</span>(<span class="token-string">'melipayamak.test_mode'</span>, <span class="token-keyword">false</span>);</div>
+                </div>
+
+                <div class="info-box warning">
+                    <div class="info-box-icon">⚠️</div>
+                    <div class="info-box-content">
+                        <div class="info-box-title">ساختار فایل‌ها</div>
+                        <div class="info-box-text">
+                            فایل‌های config باید آرایه‌ای از key/value برگردانند:
+                            <div class="code-block" style="margin-top: 10px;">
+                                <div class="code-content"><span class="token-comment">// config/app.php</span>
+<span class="token-keyword">return</span> [
+    <span class="token-string">'name'</span> => <span class="token-string">'UNO Tracker'</span>,
+    <span class="token-string">'version'</span> => <span class="token-string">'1.0.0'</span>,
+    <span class="token-string">'super_admin_id'</span> => <span class="token-number">1</span>,
+];</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         SECTION 4: SECURITY
+         ============================================ -->
+    <section id="security" class="section">
+        <div class="section-header">
+            <div class="section-icon security">🛡️</div>
+            <div>
+                <h2 class="section-title">توابع امنیتی</h2>
+                <p class="section-subtitle">محافظت در برابر XSS و CSRF</p>
+            </div>
+        </div>
+
+        <!-- e() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">e($value)</div>
+                <div class="function-badges">
+                    <span class="badge badge-danger">XSS-PROTECTION</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    Alias کوتاه برای <code>htmlspecialchars()</code>. 
+                    از حملات XSS جلوگیری می‌کند.
+                </p>
+
+                <div class="function-signature">
+                    e(mixed $value): string
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php + html</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// ❌ خطرناک - کاربر می‌تواند script تزریق کند</span>
+&lt;<span class="token-keyword">input</span> <span class="token-variable">value</span>=<span class="token-string">"&lt;?= $user['nickname'] ?&gt;"</span>&gt;
+
+<span class="token-comment">// ✅ امن - escape می‌شود</span>
+&lt;<span class="token-keyword">input</span> <span class="token-variable">value</span>=<span class="token-string">"&lt;?= e($user['nickname']) ?&gt;"</span>&gt;
+
+<span class="token-comment">// استفاده در همه جا</span>
+&lt;<span class="token-keyword">h1</span>&gt;&lt;?= <span class="token-function">e</span>(<span class="token-variable">$title</span>) ?&gt;&lt;/<span class="token-keyword">h1</span>&gt;
+&lt;<span class="token-keyword">p</span>&gt;&lt;?= <span class="token-function">e</span>(<span class="token-variable">$description</span>) ?&gt;&lt;/<span class="token-keyword">p</span>&gt;
+&lt;<span class="token-keyword">span</span>&gt;&lt;?= <span class="token-function">e</span>(<span class="token-variable">$user</span>[<span class="token-string">'bio'</span>]) ?&gt;&lt;/<span class="token-keyword">span</span>&gt;</div>
+                </div>
+
+                <div class="info-box danger">
+                    <div class="info-box-icon">🚨</div>
+                    <div class="info-box-content">
+                        <div class="info-box-title">قانون طلایی</div>
+                        <div class="info-box-text">
+                            <strong>همیشه</strong> هنگام خروجی گرفتن داده‌های کاربر از <code>e()</code> استفاده کنید.
+                            فقط در موارد خاصی مثل HTML تولیدشده توسط سیستم، آن را استفاده نکنید.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- csrf_token() & csrf_field() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">csrf_token() / csrf_field()</div>
+                <div class="function-badges">
+                    <span class="badge badge-danger">CSRF-PROTECTION</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    توکن CSRF برای محافظت از فرم‌ها در برابر حملات Cross-Site Request Forgery.
+                </p>
+
+                <div class="function-signature">
+                    csrf_token(): string<br>
+                    csrf_field(): string
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php + html</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// گرفتن فقط توکن</span>
+<span class="token-variable">$token</span> = <span class="token-function">csrf_token</span>();
+<span class="token-comment">// => "a3f5b2c9..." (64 hex characters)</span>
+
+<span class="token-comment">// استفاده در فرم (روش آسان)</span>
+&lt;<span class="token-keyword">form</span> <span class="token-variable">method</span>=<span class="token-string">"POST"</span> <span class="token-variable">action</span>=<span class="token-string">"&lt;?= url('/login') ?&gt;"</span>&gt;
+    <span class="token-function">&lt;?= csrf_field() ?&gt;</span>
+    
+    &lt;<span class="token-keyword">input</span> <span class="token-variable">type</span>=<span class="token-string">"text"</span> <span class="token-variable">name</span>=<span class="token-string">"username"</span>&gt;
+    &lt;<span class="token-keyword">input</span> <span class="token-variable">type</span>=<span class="token-string">"password"</span> <span class="token-variable">name</span>=<span class="token-string">"password"</span>&gt;
+    &lt;<span class="token-keyword">button</span> <span class="token-variable">type</span>=<span class="token-string">"submit"</span>&gt;ورود&lt;/<span class="token-keyword">button</span>&gt;
+&lt;/<span class="token-keyword">form</span>&gt;
+
+<span class="token-comment">// خروجی csrf_field():</span>
+<span class="token-comment">// &lt;input type="hidden" name="_csrf_token" value="a3f5b2c9..."&gt;</span>
+
+<span class="token-comment">// استفاده در AJAX</span>
+&lt;<span class="token-keyword">script</span>&gt;
+<span class="token-keyword">const</span> token = <span class="token-string">'&lt;?= csrf_token() ?&gt;'</span>;
+fetch(<span class="token-string">'&lt;?= url('/api/action') ?&gt;'</span>, {
+    method: <span class="token-string">'POST'</span>,
+    headers: {
+        <span class="token-string">'X-CSRF-Token'</span>: token
+    }
+});
+&lt;/<span class="token-keyword">script</span>&gt;</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         SECTION 5: UTILITY
+         ============================================ -->
+    <section id="utility" class="section">
+        <div class="section-header">
+            <div class="section-icon utility">⚙️</div>
+            <div>
+                <h2 class="section-title">توابع Utility</h2>
+                <p class="section-subtitle">توابع کمکی برای کنترل جریان و کارهای روزمره</p>
+            </div>
+        </div>
+
+        <!-- redirect() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">redirect($url, $code)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">FLOW-CONTROL</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    ریدایرکت به URL دیگر با کد HTTP قابل تنظیم.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-comment">// ریدایرکت عادی (302)</span>
+<span class="token-function">redirect</span>(<span class="token-function">url</span>(<span class="token-string">'/dashboard'</span>));
+
+<span class="token-comment">// ریدایرکت دائمی (301)</span>
+<span class="token-function">redirect</span>(<span class="token-function">url</span>(<span class="token-string">'/new-page'</span>), <span class="token-number">301</span>);
+
+<span class="token-comment">// ریدایرکت با پارامتر</span>
+<span class="token-function">redirect</span>(<span class="token-function">url</span>(<span class="token-string">'/login'</span>, [<span class="token-string">'error'</span> => <span class="token-string">'expired'</span>]));</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- abort() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">abort($code, $message)</div>
+                <div class="function-badges">
+                    <span class="badge badge-danger">ERROR</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    توقف با HTTP Error. برای نمایش صفحات خطا.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-keyword">public function</span> <span class="token-function">show</span>(<span class="token-variable">$id</span>) {
+    <span class="token-variable">$user</span> = <span class="token-variable">$this</span>-><span class="token-variable">userService</span>-><span class="token-function">find</span>(<span class="token-variable">$id</span>);
+    
+    <span class="token-keyword">if</span> (!<span class="token-variable">$user</span>) {
+        <span class="token-function">abort</span>(<span class="token-number">404</span>, <span class="token-string">'کاربر یافت نشد'</span>);
+    }
+    
+    <span class="token-keyword">if</span> (!<span class="token-variable">$user</span>[<span class="token-string">'is_public'</span>]) {
+        <span class="token-function">abort</span>(<span class="token-number">403</span>, <span class="token-string">'دسترسی غیرمجاز'</span>);
+    }
+    
+    <span class="token-keyword">if</span> (<span class="token-variable">$serverDown</span>) {
+        <span class="token-function">abort</span>(<span class="token-number">503</span>, <span class="token-string">'سرویس در حال نگهداری'</span>);
+    }
+}</div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>کد</th>
+                                <th>پیام پیش‌فرض</th>
+                                <th>کاربرد</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>400</code></td><td>Bad Request</td><td>درخواست نامعتبر</td></tr>
+                            <tr><td><code>401</code></td><td>Unauthorized</td><td>نیاز به لاگین</td></tr>
+                            <tr><td><code>403</code></td><td>Forbidden</td><td>دسترسی غیرمجاز</td></tr>
+                            <tr><td><code>404</code></td><td>Not Found</td><td>منبع یافت نشد</td></tr>
+                            <tr><td><code>500</code></td><td>Internal Error</td><td>خطای سرور</td></tr>
+                            <tr><td><code>503</code></td><td>Unavailable</td><td>سرویس در دسترس نیست</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- class_basename() -->
+        <div class="function-card">
+            <div class="function-header">
+                <div class="function-name">class_basename($class)</div>
+                <div class="function-badges">
+                    <span class="badge badge-info">REFLECTION</span>
+                </div>
+            </div>
+            <div class="function-body">
+                <p class="function-description">
+                    نام کلاس را بدون namespace برمی‌گرداند.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <div class="code-dots">
+                            <div class="code-dot red"></div>
+                            <div class="code-dot yellow"></div>
+                            <div class="code-dot green"></div>
+                        </div>
+                        <span class="code-label">php</span>
+                        <button class="copy-btn" onclick="copyCode(this)">📋 کپی</button>
+                    </div>
+                    <div class="code-content"><span class="token-function">class_basename</span>(\Application\Services\UserService::<span class="token-keyword">class</span>);
+<span class="token-comment">// => 'UserService'</span>
+
+<span class="token-variable">$obj</span> = <span class="token-keyword">new</span> \Domain\Game();
+<span class="token-function">class_basename</span>(<span class="token-variable">$obj</span>);
+<span class="token-comment">// => 'Game'</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         BEST PRACTICES
+         ============================================ -->
+    <section class="section" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));">
+        <div class="section-header">
+            <div class="section-icon" style="background: linear-gradient(135deg, #6366f1, #ec4899);">🎯</div>
+            <div>
+                <h2 class="section-title">بهترین روش‌های استفاده</h2>
+                <p class="section-subtitle">نکات طلایی برای استفاده حرفه‌ای از Helpers</p>
+            </div>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-icon">✅</div>
+            <div class="info-box-content">
+                <div class="info-box-title">در View ها همیشه از url() و asset() استفاده کنید</div>
+                <div class="info-box-text">
+                    این کار باعث می‌شود پروژه در هر Subdirectory کار کند.
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box tip">
+            <div class="info-box-icon">✅</div>
+            <div class="info-box-content">
+                <div class="info-box-title">همه ورودی‌های کاربر را با e() escape کنید</div>
+                <div class="info-box-text">
+                    حتی اگر فکر می‌کنید داده امن است، escape کنید.
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-content">
+                <div class="info-box-title">dd() و dump() را قبل از deploy حذف کنید</div>
+                <div class="info-box-text">
+                    قبل از commit حتماً جستجو کنید: <code>grep -rn "dd\|dump" src/</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box danger">
+            <div class="info-box-icon">🚨</div>
+            <div class="info-box-content">
+                <div class="info-box-title">هرگز اطلاعات حساس را dd() نکنید</div>
+                <div class="info-box-text">
+                    مثل پسوردها، توکن‌ها، یا اطلاعات شخصی کاربران.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         FOOTER
+         ============================================ -->
+    <footer class="footer">
+        <div class="footer-author">حسن حمیدی قمر</div>
+        <p>UNO Tracker v1.0 | Built with 💜 using PHP</p>
+        <p style="margin-top: 10px; font-size: 0.85rem;">
+            📅 آخرین به‌روزرسانی: <?= date('Y/m/d') ?>
+        </p>
+    </footer>
+
+</div>
+
+<!-- ============================================
+     SCRIPTS
+     ============================================ -->
+<script>
+    // Copy Code Function
+    function copyCode(button) {
+        const codeBlock = button.closest('.code-block');
+        const codeContent = codeBlock.querySelector('.code-content');
+        const text = codeContent.innerText;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = button.innerText;
+            button.innerText = '✅ کپی شد!';
+            button.classList.add('copied');
+            
+            setTimeout(() => {
+                button.innerText = originalText;
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(err => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            button.innerText = '✅ کپی شد!';
+            button.classList.add('copied');
+            setTimeout(() => {
+                button.innerText = '📋 کپی';
+                button.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    // Smooth scroll for TOC links
+    document.querySelectorAll('.toc-item').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
