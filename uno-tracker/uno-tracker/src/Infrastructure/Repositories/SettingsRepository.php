@@ -84,6 +84,9 @@ class SettingsRepository
      */
     public function set(string $key, $value, string $type = 'string', ?string $description = null, ?string $category = 'general'): void
     {
+        // ✅ ابتدا کش را بارگذاری کن (اگر بارگذاری نشده)
+        $this->loadCache();
+
         $exists = $this->db->fetchOne(
             "SELECT setting_key FROM system_settings WHERE setting_key = ?",
             [$key]
@@ -92,6 +95,7 @@ class SettingsRepository
         $data = [
             'setting_value' => is_array($value) ? json_encode($value) : $value,
             'setting_type' => $type,
+            'updated_at' => date('Y-m-d H:i:s'),
         ];
 
         if ($description !== null) {
@@ -109,11 +113,50 @@ class SettingsRepository
             $this->db->insert('system_settings', $data);
         }
 
-        // آپدیت کش
+        // ✅ آپدیت کش با مقدار جدید
         $this->cache[$key] = [
-            'value' => $value,
+            'value' => is_array($value) ? json_encode($value) : $value,
             'type' => $type,
+            'description' => $description,
+            'category' => $category,
         ];
+
+        // ✅ همچنین اطمینان از اینکه cacheLoaded true است
+        $this->cacheLoaded = true;
+    }
+
+    /**
+     * بارگذاری کش از دیتابیس
+     */
+    private function loadCache(): void
+    {
+        // ✅ اگر قبلاً بارگذاری شده، برنگرد
+        if ($this->cacheLoaded) {
+            return;
+        }
+
+        $results = $this->db->fetchAll("SELECT * FROM system_settings");
+
+        $this->cache = [];
+        foreach ($results as $row) {
+            $this->cache[$row['setting_key']] = [
+                'value' => $row['setting_value'],
+                'type' => $row['setting_type'],
+                'description' => $row['description'],
+                'category' => $row['category'],
+            ];
+        }
+
+        $this->cacheLoaded = true;
+    }
+
+    /**
+     * پاک کردن کش
+     */
+    public function clearCache(): void
+    {
+        $this->cache = [];
+        $this->cacheLoaded = false;
     }
 
     /**
@@ -186,38 +229,6 @@ class SettingsRepository
         unset($this->cache[$key]);
 
         return $result;
-    }
-
-    /**
-     * پاک کردن کش
-     */
-    public function clearCache(): void
-    {
-        $this->cache = [];
-        $this->cacheLoaded = false;
-    }
-
-    /**
-     * بارگذاری کش از دیتابیس
-     */
-    private function loadCache(): void
-    {
-        if ($this->cacheLoaded) {
-            return;
-        }
-
-        $results = $this->db->fetchAll("SELECT * FROM system_settings");
-
-        foreach ($results as $row) {
-            $this->cache[$row['setting_key']] = [
-                'value' => $row['setting_value'],
-                'type' => $row['setting_type'],
-                'description' => $row['description'],
-                'category' => $row['category'],
-            ];
-        }
-
-        $this->cacheLoaded = true;
     }
 
     /**

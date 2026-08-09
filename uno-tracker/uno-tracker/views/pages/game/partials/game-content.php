@@ -468,6 +468,7 @@ $referee = \Core\Database::getInstance()->fetchOne(
         currentUserId: <?= (int)($currentUser['id'] ?? $user['id'] ?? 0) ?>,
         isReferee: <?= ($isReferee ?? false) ? 'true' : 'false' ?>,
         maxWins: <?= (int)($maxWins ?? 0) ?>,
+        status: '<?= $game->status ?>', // 🆕 اضافه شد
         participants: <?= json_encode(
                             array_map(fn($p) => [
                                 'id' => $p->id,

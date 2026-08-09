@@ -90,36 +90,67 @@ class RecalculateUserService
                     );
                 }
             }
-
-            // ۵. 🆕 باز محاسبه القاب (Titles)
+            // ۵. باز محاسبه القاب (Titles) - نسخه بهبود یافته
             $titles = $this->db->fetchAll("SELECT * FROM titles WHERE is_active = 1");
             $validTitles = [];
+
             foreach ($titles as $title) {
                 $currentValue = $this->getCurrentValue($title['condition_type'], $userId);
+
+                // 🆕 لاگ برای debug
+                error_log("Title check: {$title['name']} - current: {$currentValue}, required: {$title['condition_value']}");
+
                 if ($currentValue >= $title['condition_value']) {
                     $validTitles[] = $title;
+
+                    // اطمینان از وجود در user_titles
+                    $this->db->query(
+                        "INSERT INTO user_titles (user_id, title_id, is_active, unlocked_at)
+             VALUES (?, ?, 0, NOW()) 
+             ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())",
+                        [$userId, $title['id']]
+                    );
                 } else {
+                    // حذف لقب‌های نامعتبر
                     $this->db->query("DELETE FROM user_titles WHERE user_id = ? AND title_id = ?", [$userId, $title['id']]);
                 }
             }
 
-            // فعال‌سازی بهترین لقب معتبر
+            // 🆕 فعال‌سازی بهترین لقب معتبر - نسخه بهبود یافته
             if (!empty($validTitles)) {
+                // 🎯 Sort: اول bonus_points (نزولی)، سپس priority (نزولی)، سپس ID (نزولی برای ثبات)
                 usort($validTitles, function ($a, $b) {
-                    if ($a['bonus_points'] != $b['bonus_points']) return $b['bonus_points'] <=> $a['bonus_points'];
-                    return $b['priority'] <=> $a['priority'];
+                    if ($a['bonus_points'] != $b['bonus_points']) {
+                        return $b['bonus_points'] <=> $a['bonus_points'];
+                    }
+                    if ($a['priority'] != $b['priority']) {
+                        return $b['priority'] <=> $a['priority'];
+                    }
+                    return $b['id'] <=> $a['id']; // 🆕 Tie-breaker
                 });
 
                 $bestTitle = $validTitles[0];
-                $this->db->query("UPDATE user_titles SET is_active = 0, unlocked_at = NULL WHERE user_id = ?", [$userId]);
+
+                // 🆕 لاگ برای debug
+                error_log("Best title selected: {$bestTitle['name']} with bonus: {$bestTitle['bonus_points']}");
+
+                // 🆕 غیرفعال کردن همه لقب‌های دیگر
                 $this->db->query(
-                    "INSERT INTO user_titles (user_id, title_id, is_active, unlocked_at)
-                 VALUES (?, ?, 1, NOW()) ON DUPLICATE KEY UPDATE is_active = 1, unlocked_at = NOW()",
+                    "UPDATE user_titles SET is_active = 0 WHERE user_id = ? AND title_id != ?",
                     [$userId, $bestTitle['id']]
                 );
+
+                // فعال کردن بهترین
+                $this->db->query(
+                    "UPDATE user_titles SET is_active = 1, unlocked_at = COALESCE(unlocked_at, NOW()) 
+         WHERE user_id = ? AND title_id = ?",
+                    [$userId, $bestTitle['id']]
+                );
+
+                // به‌روزرسانی users.current_title_id
                 $this->db->update('users', ['current_title_id' => $bestTitle['id']], 'id = ?', [$userId]);
             } else {
-                $this->db->query("UPDATE user_titles SET is_active = 0, unlocked_at = NULL WHERE user_id = ?", [$userId]);
+                $this->db->query("UPDATE user_titles SET is_active = 0 WHERE user_id = ?", [$userId]);
                 $this->db->update('users', ['current_title_id' => null], 'id = ?', [$userId]);
             }
 

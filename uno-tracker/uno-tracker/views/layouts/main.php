@@ -335,11 +335,33 @@
     // 🎵 بارگذاری تنظیمات صدای SSE
     $sseSoundConfig = [];
     $soundFiles = ['default' => '/assets/sounds/default.mp3'];
+    // در بخش PHP، بعد از تعریف $sseSoundConfig و $soundFiles
+
+    // 🆕 تنظیمات Auto-Refresh Fallback
+    $fallbackEnabled = true;
+    $fallbackSeconds = 10;
+    $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
+    try {
+        $fallbackEnabled = (bool) $settingsRepo->get('sse_fallback_enabled', true);
+        $fallbackSeconds = (int) $settingsRepo->get('sse_fallback_refresh_seconds', 10);
+    } catch (\Throwable $e) {
+        error_log("Auto-Refresh Config Error: " . $e->getMessage());
+    }
 
     try {
-        $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
-        $rawConfig = $settingsRepo->get('sse_sound_settings', []);
 
+        $rawConfig = $settingsRepo->get('sse_sound_settings', []);
+        // در بخش PHP، بعد از تعریف $sseSoundConfig و $soundFiles
+
+        // 🆕 تنظیمات Auto-Refresh Fallback
+        $fallbackEnabled = true;
+        $fallbackSeconds = 10;
+        try {
+            $fallbackEnabled = (bool) $settingsRepo->get('sse_fallback_enabled', true);
+            $fallbackSeconds = (int) $settingsRepo->get('sse_fallback_refresh_seconds', 10);
+        } catch (\Throwable $e) {
+            error_log("Auto-Refresh Config Error: " . $e->getMessage());
+        }
         // Decode JSON
         if (is_string($rawConfig)) {
             $decoded = json_decode($rawConfig, true);
@@ -411,7 +433,15 @@
     <script>
         window.SSE_SOUND_CONFIG = <?= json_encode($sseSoundConfig, JSON_UNESCAPED_UNICODE) ?>;
         window.SOUND_FILES = <?= json_encode($soundFiles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT) ?>;
+        // ... بعد از window.SSE_SOUND_CONFIG و window.SOUND_FILES
 
+        // 🆕 تنظیمات Auto-Refresh Fallback
+        window.SSE_FALLBACK_CONFIG = {
+            enabled: <?= $fallbackEnabled ? 'true' : 'false' ?>,
+            refreshSeconds: <?= (int) $fallbackSeconds ?>,
+        };
+
+        console.log('🔄 SSE_FALLBACK_CONFIG:', window.SSE_FALLBACK_CONFIG);
         // 🆕 تابع بارگذاری مجدد SoundManager
         function reloadSoundManager() {
             // 🆕 اگر SoundManager وجود ندارد یا loadConfig تابع نیست، نمونه جدید بساز

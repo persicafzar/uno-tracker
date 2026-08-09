@@ -346,6 +346,9 @@ class AdminController
     /**
      * به‌روزرسانی تنظیمات
      */
+    /**
+     * به‌روزرسانی تنظیمات
+     */
     public function updateSettings(Request $request): void
     {
         $admin = $this->auth->user();
@@ -353,21 +356,91 @@ class AdminController
         $category = $request->post('category', 'general');
         $settingsRepo = SettingsRepository::getInstance();
 
+        // لاگ برای دیباگ
+        error_log('Settings received: ' . print_r($settings, true));
+
+        // لیست کلیدهای JSON
+        $jsonKeys = ['sse_sound_settings'];
+
+        // لیست کلیدهای Boolean
+        $booleanKeys = [
+            'sse_fallback_enabled',
+            'enable_notifications',
+            'notification_sound_enabled',
+            'enable_animations',
+            'anticheat_enabled',
+            'registration_enabled',
+            'maintenance_mode',
+            'require_special_char',
+            'require_number',
+            'sms_enabled'
+        ];
+
+        // لیست کلیدهای Integer
+        $integerKeys = [
+            'sse_fallback_refresh_seconds',
+            'default_notification_duration',
+            'max_login_attempts',
+            'lockout_duration',
+            'password_min_length',
+            'max_players_per_game',
+            'max_guest_players',
+            'default_target_wins',
+            'min_players_solo',
+            'min_players_team',
+            'players_per_team',
+            'xp_game_played',
+            'xp_win_solo',
+            'xp_win_team',
+            'streak_reset_hours',
+            'max_upload_size',
+            'avatar_max_width',
+            'avatar_max_height',
+            'items_per_page',
+            'scoring_base_score',
+            'scoring_win_bonus',
+            'scoring_game_bonus',
+            'scoring_team_multiplier',
+            'scoring_winner_bonus',
+            'scoring_min_target_wins',
+            'session_lifetime',
+            'session_idle_timeout',
+            'session_warn_before_expire',
+            'session_regenerate_interval',
+            'xp_achievement_unlock',
+            'xp_challenge_complete',
+            'anticheat_min_round_duration',
+            'anticheat_min_players',
+            'anticheat_max_guests',
+            'anticheat_min_members',
+            'anticheat_max_win_percentage',
+            'anticheat_max_games_per_hour',
+            'anticheat_min_target_wins_threshold',
+            'anticheat_max_low_target_games',
+            'anticheat_new_account_hours',
+            'anticheat_max_accounts_per_ip',
+            'anticheat_max_games_created_per_day',
+            'anticheat_max_solo_games_per_day',
+            'anticheat_max_friendly_games_per_day',
+            'anticheat_collusion_min_games',
+            'anticheat_collusion_max_opponents',
+            'sms_otp_length',
+            'sms_otp_expiry',
+            'sms_daily_limit',
+            'sms_otp_attempt_limit'
+        ];
+
         foreach ($settings as $key => $value) {
-            // 🆕 تعیین نوع داده
+            // تعیین نوع داده
             $type = 'string';
             $valueToSave = $value;
 
-            // 🆕 اولویت ۱: کلیدهای مشخص که همیشه JSON هستند
-            $jsonKeys = ['sse_sound_settings'];
+            // اولویت ۱: کلیدهای JSON
             if (in_array($key, $jsonKeys)) {
                 $type = 'json';
-                // اگر value یک آرایه PHP است، encode کن
                 if (is_array($value)) {
                     $valueToSave = json_encode($value, JSON_UNESCAPED_UNICODE);
-                }
-                // اگر string است، decode و re-encode کن تا تمیز شود
-                elseif (is_string($value)) {
+                } elseif (is_string($value)) {
                     $decoded = json_decode($value, true);
                     if (json_last_error() === JSON_ERROR_NONE) {
                         $valueToSave = json_encode($decoded, JSON_UNESCAPED_UNICODE);
@@ -377,7 +450,17 @@ class AdminController
                     }
                 }
             }
-            // 🆕 اولویت ۲: تشخیص خودکار
+            // اولویت ۲: کلیدهای Boolean
+            elseif (in_array($key, $booleanKeys)) {
+                $type = 'boolean';
+                $valueToSave = (int) (bool) $value;
+            }
+            // اولویت ۳: کلیدهای Integer
+            elseif (in_array($key, $integerKeys)) {
+                $type = 'integer';
+                $valueToSave = (int) $value;
+            }
+            // تشخیص خودکار
             elseif (is_numeric($value) && strpos((string)$value, '.') === false) {
                 $type = 'integer';
             } elseif (is_numeric($value)) {
@@ -386,20 +469,15 @@ class AdminController
                 $type = 'boolean';
             }
 
-            // 🆕 ذخیره مستقیم در دیتابیس با type صحیح
-            $this->db->query(
-                "INSERT INTO system_settings (setting_key, setting_value, setting_type, category, updated_by, updated_at)
-             VALUES (?, ?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE 
-                setting_value = VALUES(setting_value),
-                setting_type = VALUES(setting_type),
-                category = VALUES(category),
-                updated_by = VALUES(updated_by),
-                updated_at = NOW()",
-                [$key, $valueToSave, $type, $category, $admin['id']]
-            );
+            // ✅ اصلاح: ارسال دسته‌بندی به Repository
+            try {
+                $settingsRepo->set($key, $valueToSave, $type, null, $category);
+                error_log("✅ Saved setting: {$key} = {$valueToSave} ({$type}) in category {$category}");
+            } catch (\Throwable $e) {
+                error_log("❌ Error saving setting {$key}: " . $e->getMessage());
+            }
 
-            // 🆕 ثبت لاگ
+            // ثبت لاگ (اختیاری)
             $this->adminService->updateSetting(
                 $key,
                 is_string($valueToSave) ? $valueToSave : json_encode($valueToSave),
@@ -409,13 +487,15 @@ class AdminController
             );
         }
 
-        // 🆕 پاک کردن کش
+        // بازنشانی کامل کش
         $settingsRepo->clearCache();
 
+        // ریدایرکت با پیام موفقیت
+        $redirectUrl = '/admin/settings?tab=' . $category . '&saved=1';
         if ($request->isHtmx()) {
-            $this->response->htmxRedirect('/admin/settings?tab=' . $category . '&saved=1');
+            $this->response->htmxRedirect($redirectUrl);
         } else {
-            $this->response->redirect('/admin/settings?tab=' . $category . '&saved=1');
+            $this->response->redirect($redirectUrl);
         }
     }
 

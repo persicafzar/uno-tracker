@@ -15,6 +15,7 @@
             font-style: normal;
             font-display: swap;
         }
+
         * {
             font-family: 'Vazir', Tahoma, Arial, sans-serif;
         }
@@ -42,7 +43,8 @@
             color: #e2e8f0;
             margin: 0;
             padding: 25px 35px 15px;
-            padding-top: 70px; /* ✅ افزایش فاصله از بالا */
+            padding-top: 70px;
+            /* ✅ افزایش فاصله از بالا */
             min-height: 100vh;
             font-family: 'Vazir', Tahoma, Arial, sans-serif;
             display: flex;
@@ -53,22 +55,33 @@
             width: 10px;
             height: 10px;
         }
+
         ::-webkit-scrollbar-track {
             background: #1e293b;
             border-radius: 6px;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #4f46e5;
             border-radius: 6px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #6366f1;
         }
 
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.5); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+            }
         }
+
         .pulse-glow {
             animation: pulse-glow 2s ease-in-out infinite;
         }
@@ -88,7 +101,8 @@
         .tv-content-inner {
             padding-left: 110px;
             padding-right: 20px;
-            margin-top: 10px; /* ✅ فاصله اضافی از بالا */
+            margin-top: 10px;
+            /* ✅ فاصله اضافی از بالا */
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -102,6 +116,7 @@
             padding: 14px 20px;
             transition: all 0.3s;
         }
+
         .tv-card:hover {
             border-color: #6366f1;
             box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
@@ -120,25 +135,31 @@
             align-items: center;
             gap: 6px;
         }
+
         .tv-btn-primary {
             background: #4f46e5;
             color: white;
         }
+
         .tv-btn-primary:hover {
             background: #6366f1;
             transform: scale(1.02);
         }
+
         .tv-btn-secondary {
             background: #334155;
             color: #e2e8f0;
         }
+
         .tv-btn-secondary:hover {
             background: #475569;
         }
+
         .tv-btn-success {
             background: #10b981;
             color: #0f172a;
         }
+
         .tv-btn-success:hover {
             background: #34d399;
             transform: scale(1.02);
@@ -155,11 +176,13 @@
             transition: all 0.2s;
             font-family: 'Vazir', Tahoma, Arial, sans-serif;
         }
+
         .tv-input:focus {
             outline: none;
             border-color: #6366f1;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
         }
+
         .tv-input::placeholder {
             color: #64748b;
         }
@@ -169,6 +192,7 @@
             border-collapse: collapse;
             font-size: 1.1rem;
         }
+
         .tv-table th {
             text-align: right;
             padding: 8px 12px;
@@ -177,10 +201,12 @@
             font-weight: bold;
             border-bottom: 2px solid #334155;
         }
+
         .tv-table td {
             padding: 10px 12px;
             border-bottom: 1px solid #1e293b;
         }
+
         .tv-table tr:hover td {
             background: #1e293b;
         }
@@ -191,17 +217,38 @@
             font-size: 0.85rem;
             font-weight: bold;
         }
-        .status-active { background: #10b981; color: #0f172a; }
-        .status-paused { background: #f59e0b; color: #0f172a; }
-        .status-finished { background: #3b82f6; color: #0f172a; }
-        .status-pending { background: #fbbf24; color: #0f172a; }
-        .status-cancelled { background: #ef4444; color: #0f172a; }
+
+        .status-active {
+            background: #10b981;
+            color: #0f172a;
+        }
+
+        .status-paused {
+            background: #f59e0b;
+            color: #0f172a;
+        }
+
+        .status-finished {
+            background: #3b82f6;
+            color: #0f172a;
+        }
+
+        .status-pending {
+            background: #fbbf24;
+            color: #0f172a;
+        }
+
+        .status-cancelled {
+            background: #ef4444;
+            color: #0f172a;
+        }
 
         a {
             color: #a5b4fc;
             text-decoration: none;
             transition: color 0.2s;
         }
+
         a:hover {
             color: #818cf8;
         }
@@ -260,6 +307,7 @@
             border-color: #6366f1;
             box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
         }
+
         .floating-actions .btn-float:active {
             transform: scale(0.95);
         }
@@ -268,24 +316,29 @@
             background: rgba(16, 185, 129, 0.2);
             border-color: rgba(16, 185, 129, 0.3);
         }
+
         .floating-actions .btn-float.refresh:hover {
             background: rgba(16, 185, 129, 0.35);
             border-color: #10b981;
             box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
         }
+
         .floating-actions .btn-float.list {
             background: rgba(99, 102, 241, 0.15);
             border-color: rgba(99, 102, 241, 0.25);
         }
+
         .floating-actions .btn-float.list:hover {
             background: rgba(99, 102, 241, 0.3);
             border-color: #6366f1;
             box-shadow: 0 0 30px rgba(99, 102, 241, 0.25);
         }
+
         .floating-actions .btn-float.home {
             background: rgba(168, 85, 247, 0.15);
             border-color: rgba(168, 85, 247, 0.25);
         }
+
         .floating-actions .btn-float.home:hover {
             background: rgba(168, 85, 247, 0.3);
             border-color: #a855f7;
@@ -303,10 +356,12 @@
             border-top: 1px solid rgba(255, 255, 255, 0.06);
             flex-shrink: 0;
         }
+
         .tv-footer img {
             width: 40px;
             height: 40px;
         }
+
         .tv-footer .brand {
             font-size: 1.5rem;
             font-weight: 900;
@@ -319,69 +374,217 @@
 
         /* ======= تنظیمات واکنش‌گرا ======= */
         @media (max-width: 1200px) {
-            .tv-content-inner { padding-left: 90px; padding-right: 15px; }
+            .tv-content-inner {
+                padding-left: 90px;
+                padding-right: 15px;
+            }
         }
 
         @media (max-width: 1024px) {
-            body { padding: 18px 20px 12px; padding-top: 60px; }
-            .floating-actions { left: 14px; gap: 10px; }
-            .floating-actions .btn-float { width: 56px; padding: 8px 4px 6px; border-radius: 14px; }
-            .floating-actions .btn-float .icon { font-size: 1.3rem; }
-            .floating-actions .btn-float .label { font-size: 0.6rem; }
-            .tv-content-inner { padding-left: 75px; padding-right: 12px; margin-top: 8px; }
+            body {
+                padding: 18px 20px 12px;
+                padding-top: 60px;
+            }
+
+            .floating-actions {
+                left: 14px;
+                gap: 10px;
+            }
+
+            .floating-actions .btn-float {
+                width: 56px;
+                padding: 8px 4px 6px;
+                border-radius: 14px;
+            }
+
+            .floating-actions .btn-float .icon {
+                font-size: 1.3rem;
+            }
+
+            .floating-actions .btn-float .label {
+                font-size: 0.6rem;
+            }
+
+            .tv-content-inner {
+                padding-left: 75px;
+                padding-right: 12px;
+                margin-top: 8px;
+            }
         }
 
         @media (max-width: 768px) {
-            body { padding: 12px 14px 8px; padding-top: 50px; }
-            .floating-actions { left: 10px; gap: 8px; }
-            .floating-actions .btn-float { width: 48px; padding: 6px 3px 4px; border-radius: 12px; }
-            .floating-actions .btn-float .icon { font-size: 1.1rem; }
-            .floating-actions .btn-float .label { font-size: 0.5rem; }
-            .tv-content-inner { padding-left: 60px; padding-right: 10px; margin-top: 6px; }
-            .tv-footer .brand { font-size: 1.2rem; }
-            .tv-footer img { width: 32px; height: 32px; }
+            body {
+                padding: 12px 14px 8px;
+                padding-top: 50px;
+            }
+
+            .floating-actions {
+                left: 10px;
+                gap: 8px;
+            }
+
+            .floating-actions .btn-float {
+                width: 48px;
+                padding: 6px 3px 4px;
+                border-radius: 12px;
+            }
+
+            .floating-actions .btn-float .icon {
+                font-size: 1.1rem;
+            }
+
+            .floating-actions .btn-float .label {
+                font-size: 0.5rem;
+            }
+
+            .tv-content-inner {
+                padding-left: 60px;
+                padding-right: 10px;
+                margin-top: 6px;
+            }
+
+            .tv-footer .brand {
+                font-size: 1.2rem;
+            }
+
+            .tv-footer img {
+                width: 32px;
+                height: 32px;
+            }
         }
 
         @media (max-width: 480px) {
-            body { padding: 8px 10px 6px; padding-top: 40px; }
-            .floating-actions { left: 6px; gap: 6px; }
-            .floating-actions .btn-float { width: 42px; padding: 4px 2px 3px; border-radius: 10px; }
-            .floating-actions .btn-float .icon { font-size: 0.9rem; }
-            .floating-actions .btn-float .label { font-size: 0.45rem; }
-            .tv-content-inner { padding-left: 50px; padding-right: 8px; margin-top: 4px; }
+            body {
+                padding: 8px 10px 6px;
+                padding-top: 40px;
+            }
+
+            .floating-actions {
+                left: 6px;
+                gap: 6px;
+            }
+
+            .floating-actions .btn-float {
+                width: 42px;
+                padding: 4px 2px 3px;
+                border-radius: 10px;
+            }
+
+            .floating-actions .btn-float .icon {
+                font-size: 0.9rem;
+            }
+
+            .floating-actions .btn-float .label {
+                font-size: 0.45rem;
+            }
+
+            .tv-content-inner {
+                padding-left: 50px;
+                padding-right: 8px;
+                margin-top: 4px;
+            }
         }
 
         @media (min-width: 1200px) {
-            body { padding: 28px 45px 16px; padding-top: 80px; }
-            .tv-card { padding: 18px 26px; }
-            .tv-table { font-size: 1.2rem; }
-            .tv-table th, .tv-table td { padding: 12px 18px; }
-            .floating-actions .btn-float { width: 80px; padding: 12px 8px 10px; border-radius: 18px; }
-            .floating-actions .btn-float .icon { font-size: 1.9rem; }
-            .floating-actions .btn-float .label { font-size: 0.8rem; }
-            .tv-content-inner { padding-left: 110px; padding-right: 25px; margin-top: 12px; }
-            .tv-footer .brand { font-size: 2rem; }
-            .tv-footer img { width: 52px; height: 52px; }
+            body {
+                padding: 28px 45px 16px;
+                padding-top: 20px;
+            }
+
+            .tv-card {
+                padding: 18px 26px;
+            }
+
+            .tv-table {
+                font-size: 1.2rem;
+            }
+
+            .tv-table th,
+            .tv-table td {
+                padding: 12px 18px;
+            }
+
+            .floating-actions .btn-float {
+                width: 80px;
+                padding: 12px 8px 10px;
+                border-radius: 18px;
+            }
+
+            .floating-actions .btn-float .icon {
+                font-size: 1.9rem;
+            }
+
+            .floating-actions .btn-float .label {
+                font-size: 0.8rem;
+            }
+
+            .tv-content-inner {
+                padding-left: 110px;
+                padding-right: 25px;
+                margin-top: 12px;
+            }
+
+            .tv-footer .brand {
+                font-size: 2rem;
+            }
+
+            .tv-footer img {
+                width: 52px;
+                height: 52px;
+            }
         }
 
         .fade-in {
             animation: fadeIn 0.4s ease-out;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
+
+    <?php
+    // 🆕 دریافت تنظیمات Auto-Refresh از دیتابیس
+    $fallbackEnabled = true;
+    $fallbackSeconds = 10;
+    try {
+        $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
+        $fallbackEnabled = (bool) $settingsRepo->get('sse_fallback_enabled', true);
+        $fallbackSeconds = (int) $settingsRepo->get('sse_fallback_refresh_seconds', 10);
+    } catch (\Throwable $e) {
+        error_log("Auto-Refresh Config Error (TV): " . $e->getMessage());
+    }
+    ?>
+    <script>
+        window.SSE_FALLBACK_CONFIG = {
+            enabled: <?= $fallbackEnabled ? 'true' : 'false' ?>,
+            refreshSeconds: <?= (int) $fallbackSeconds ?>,
+        };
+        console.log('🔄 SSE_FALLBACK_CONFIG (TV):', window.SSE_FALLBACK_CONFIG);
+    </script>
+
 </head>
 
 <body>
     <div class="tv-container">
-
         <!-- ======= دکمه‌های شناور ======= -->
         <div class="floating-actions" role="navigation" aria-label="کنترل‌های تلویزیون">
             <button onclick="refreshTV()" class="btn-float refresh" title="تازه‌سازی">
                 <span class="icon">🔄</span>
                 <span class="label">تازه‌سازی</span>
+            </button>
+            <!-- 🆕 دکمه آخرین بازی -->
+            <button onclick="handleLatestGameTV()" class="btn-float list" title="آخرین بازی">
+                <span class="icon">▶️</span>
+                <span class="label">آخرین بازی</span>
             </button>
             <a href="/tv" class="btn-float list" title="لیست بازی‌ها">
                 <span class="icon">📺</span>
@@ -421,6 +624,65 @@
         });
 
         window.TV_MODE = true;
+
+        /**
+         * 🎯 مدیریت کلیک روی "آخرین بازی" در حالت TV
+         * 🔄 هدایت به صفحه TV (نه صفحه عادی بازی)
+         */
+        async function handleLatestGameTV() {
+            try {
+                const response = await fetch('/api/game/latest-active', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                // ✅ اگر بازی پیدا شد، به صفحه TV هدایت کن
+                if (data.success !== false && data.game_id) {
+                    window.location.href = '/tv/' + data.game_id;
+                    return;
+                }
+
+                // ❌ اگر بازی‌ای وجود نداشت، پیغام نمایش بده
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        iconColor: '#6366f1',
+                        title: data.message || 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true,
+                        background: '#f0f9ff',
+                        color: '#1e40af',
+                        width: '420px',
+                        padding: '1rem 1.5rem',
+                        customClass: {
+                            popup: 'swal2-notification-border'
+                        }
+                    });
+                } else {
+                    alert(data.message || 'شما در حال حاضر هیچ بازی فعال، در انتظار یا متوقف شده‌ای ندارید');
+                }
+
+            } catch (error) {
+                console.error('❌ Error fetching latest game:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'خطا در ارتباط با سرور',
+                        showConfirmButton: false,
+                        timer: 3000,
+                    });
+                }
+            }
+        }
 
         function refreshTV() {
             const path = window.location.pathname;
@@ -628,7 +890,6 @@
 
         })();
     </script>
-
 </body>
 
 </html>

@@ -178,6 +178,7 @@ class TVController
         $html = View::make('pages.tv.show', [
             'title' => 'نمایش تلویزیون - ' . ($game->name ?: 'بازی #' . $gameId),
             'game' => $game,
+            'isGamePage' => true, // 🆕 برای بارگذاری tv-sse.js
             'currentUser' => $currentUser,
             'isReferee' => $isReferee,
             'maxWins' => $maxWinsValue,

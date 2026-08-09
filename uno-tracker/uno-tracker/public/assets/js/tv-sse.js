@@ -1,6 +1,7 @@
 /**
- * 📡 TV SSE - نسخه مخصوص نمایش تلویزیون با پشتیبانی از صدا و نوتیفیکیشن عمومی
- * 🎯 تمام نوتیفیکیشن‌ها به‌صورت عمومی نمایش داده می‌شوند (بدون شخصی‌سازی)
+ * 📡 TV SSE - نسخه مخصوص نمایش تلویزیون با Auto-Refresh Fallback
+ * 🎯 تمام نوتیفیکیشن‌ها به‌صورت عمومی نمایش داده می‌شوند
+ * 🆕 اضافه شدن Auto-Refresh با تنظیمات داینامیک
  */
 
 // متغیرهای سراسری
@@ -11,8 +12,11 @@ if (typeof TV_SSE_CONFIG === "undefined") {
     isReferee: window.GAME_CONFIG?.isReferee || false,
     reloadDebounceMs: 0,
     lastReloadTime: 0,
+    lastSseEventTime: Date.now(),
     pendingReload: false,
     reloadTimer: null,
+    autoRefreshInterval: null,
+    autoRefreshDelayMs: 10000, // مقدار پیش‌فرض
   };
 } else {
   if (window.GAME_CONFIG) {
@@ -22,6 +26,30 @@ if (typeof TV_SSE_CONFIG === "undefined") {
     TV_SSE_CONFIG.isReferee =
       window.GAME_CONFIG.isReferee ?? TV_SSE_CONFIG.isReferee;
   }
+}
+// 🆕 دریافت وضعیت بازی
+if (window.TV_SSE_CONFIG && window.TV_SSE_CONFIG.status) {
+  TV_SSE_CONFIG.gameStatus = window.TV_SSE_CONFIG.status;
+} else if (window.GAME_CONFIG && window.GAME_CONFIG.status) {
+  TV_SSE_CONFIG.gameStatus = window.GAME_CONFIG.status;
+} else {
+  TV_SSE_CONFIG.gameStatus = "active";
+}
+console.log("📺 TV Game status:", TV_SSE_CONFIG.gameStatus);
+
+// 🆕 بارگذاری تنظیمات Auto-Refresh از پنجره
+if (window.SSE_FALLBACK_CONFIG) {
+  const cfg = window.SSE_FALLBACK_CONFIG;
+  if (cfg.enabled && cfg.refreshSeconds > 0) {
+    TV_SSE_CONFIG.autoRefreshDelayMs = cfg.refreshSeconds * 1000;
+    console.log(`🔄 TV Auto-refresh enabled: ${cfg.refreshSeconds}s`);
+  } else {
+    TV_SSE_CONFIG.autoRefreshDelayMs = 0;
+    console.log(`⏭️ TV Auto-refresh disabled by settings`);
+  }
+} else {
+  console.warn("⚠️ SSE_FALLBACK_CONFIG not found, using default 10s");
+  TV_SSE_CONFIG.autoRefreshDelayMs = 10000;
 }
 
 // لیست شرکت‌کنندگان
@@ -70,14 +98,84 @@ document.addEventListener("DOMContentLoaded", function () {
     const heartbeatUrl =
       (window.BASE_URL || "") + "/tv/" + TV_SSE_CONFIG.gameId;
     window.SSE.startHeartbeat(heartbeatUrl);
+
+    // 🆕 شروع Auto-Refresh Fallback برای TV (همیشه فعال، مگر اینکه تنظیمات غیرفعال باشد)
+    startTVAutoRefreshFallback();
   } else {
     console.warn("⚠️ TV SSE not available or gameId not set");
+    startTVAutoRefreshFallback();
   }
 });
 
-// ============================================
+// ═══════════════════════════════════════════════════════
+// 🆕 AUTO-REFRESH FALLBACK برای TV
+// ═══════════════════════════════════════════════════════
+
+function startTVAutoRefreshFallback() {
+  if (TV_SSE_CONFIG.autoRefreshDelayMs === 0) {
+    console.log("⏭️ TV Auto-refresh disabled by settings");
+    return;
+  }
+
+  // 🆕 بررسی وضعیت بازی
+  if (
+    TV_SSE_CONFIG.gameStatus === "finished" ||
+    TV_SSE_CONFIG.gameStatus === "cancelled"
+  ) {
+    console.log(
+      `⏭️ TV Auto-refresh disabled for game status: ${TV_SSE_CONFIG.gameStatus}`,
+    );
+    if (TV_SSE_CONFIG.autoRefreshInterval) {
+      clearInterval(TV_SSE_CONFIG.autoRefreshInterval);
+      TV_SSE_CONFIG.autoRefreshInterval = null;
+    }
+    return;
+  }
+
+  // برای TV، حتی اگر داور هم باشد، auto-refresh فعال است
+  // چون TV معمولاً توسط تماشاچیان استفاده می‌شود
+
+  if (TV_SSE_CONFIG.autoRefreshInterval) {
+    clearInterval(TV_SSE_CONFIG.autoRefreshInterval);
+  }
+
+  TV_SSE_CONFIG.autoRefreshInterval = setInterval(() => {
+    if (TV_SSE_CONFIG.autoRefreshDelayMs === 0) {
+      clearInterval(TV_SSE_CONFIG.autoRefreshInterval);
+      TV_SSE_CONFIG.autoRefreshInterval = null;
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastSse = now - TV_SSE_CONFIG.lastSseEventTime;
+
+    if (timeSinceLastSse > TV_SSE_CONFIG.autoRefreshDelayMs) {
+      console.log(
+        `⏰ TV Auto-refresh triggered (no SSE for ${Math.round(timeSinceLastSse / 1000)}s)`,
+      );
+      performTVReload("auto_refresh");
+      TV_SSE_CONFIG.lastSseEventTime = Date.now();
+    }
+  }, 5000);
+
+  console.log(
+    `✅ TV Auto-refresh started (delay: ${TV_SSE_CONFIG.autoRefreshDelayMs / 1000}s)`,
+  );
+}
+
+function stopTVAutoRefreshFallback() {
+  if (TV_SSE_CONFIG.autoRefreshInterval) {
+    clearInterval(TV_SSE_CONFIG.autoRefreshInterval);
+    TV_SSE_CONFIG.autoRefreshInterval = null;
+    console.log("⏹️ TV Auto-refresh stopped");
+  }
+}
+
+window.addEventListener("beforeunload", stopTVAutoRefreshFallback);
+
+// ═══════════════════════════════════════════════════════
 // ✅ توابع اصلی
-// ============================================
+// ═══════════════════════════════════════════════════════
 
 function getTVUserRoleInEvent(eventType, data) {
   return "spectator";
@@ -158,6 +256,28 @@ function showTVConfetti() {
 function handleTVSSEEvent(eventType, data) {
   console.log(`📨 TV SSE Event: ${eventType}`, data);
 
+  // 🆕 به‌روزرسانی زمان آخرین SSE برای TV
+  TV_SSE_CONFIG.lastSseEventTime = Date.now();
+
+  if (eventType === "game_status_changed") {
+    const newStatus = data.status;
+    console.log(`🔄 TV Game status changed to: ${newStatus}`);
+    TV_SSE_CONFIG.gameStatus = newStatus;
+
+    if (newStatus === "finished" || newStatus === "cancelled") {
+      if (TV_SSE_CONFIG.autoRefreshInterval) {
+        clearInterval(TV_SSE_CONFIG.autoRefreshInterval);
+        TV_SSE_CONFIG.autoRefreshInterval = null;
+        console.log("⏹️ TV Auto-refresh stopped (game finished/cancelled)");
+      }
+      return;
+    }
+
+    if (!TV_SSE_CONFIG.autoRefreshInterval) {
+      startTVAutoRefreshFallback();
+    }
+  }
+
   if (eventType === "game_referee_changed") {
     if (data.new_referee_id === TV_SSE_CONFIG.currentUserId) {
       TV_SSE_CONFIG.isReferee = true;
@@ -168,12 +288,10 @@ function handleTVSSEEvent(eventType, data) {
 
   const userRole = "spectator";
 
-  // ✅ صدا و نوتیفیکیشن و ریلود همزمان
   playTVSound(eventType, userRole, data);
   showTVNotification(eventType, data);
   performTVReload(eventType);
 
-  // 🆕 ارسال رویداد برای ریست تایمر رفرش خودکار
   document.dispatchEvent(
     new CustomEvent("game_updated", {
       detail: { eventType, data },
@@ -220,6 +338,8 @@ function showTVNotification(eventType, data) {
     case "score_updated":
       title = "⭐ امتیازات به‌روز شد";
       break;
+    case "auto_refresh":
+      return;
     default:
       title = `📢 رویداد: ${eventType}`;
   }
@@ -277,6 +397,29 @@ function performTVReload(eventType) {
           if (window.GAME_CONFIG) {
             TV_SSE_CONFIG.isReferee =
               window.GAME_CONFIG.isReferee ?? TV_SSE_CONFIG.isReferee;
+
+            // 🆕 به‌روزرسانی وضعیت بازی
+            const newStatus = window.GAME_CONFIG.status;
+            if (newStatus) {
+              TV_SSE_CONFIG.gameStatus = newStatus;
+              console.log(`🔄 TV Game status after reload: ${newStatus}`);
+            }
+
+            // 🆕 بر اساس وضعیت بازی، Auto-Refresh را تنظیم کن
+            if (
+              TV_SSE_CONFIG.gameStatus === "finished" ||
+              TV_SSE_CONFIG.gameStatus === "cancelled"
+            ) {
+              stopTVAutoRefreshFallback();
+              console.log(
+                `⏹️ TV Auto-refresh stopped (game ${TV_SSE_CONFIG.gameStatus})`,
+              );
+            } else {
+              // اگر Auto-Refresh در حال اجرا نیست، آن را شروع کن
+              if (!TV_SSE_CONFIG.autoRefreshInterval) {
+                startTVAutoRefreshFallback();
+              }
+            }
           }
           console.log("✅ TV Reload completed successfully");
         } else {
@@ -296,3 +439,5 @@ function performTVReload(eventType) {
 function markSelfAction(eventType) {
   console.log(`🏷️ TV markSelfAction: ${eventType} (ignored)`);
 }
+
+console.log("✅ tv-sse.js loaded with auto-refresh");

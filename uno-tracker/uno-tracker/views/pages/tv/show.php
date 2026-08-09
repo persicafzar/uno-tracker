@@ -63,6 +63,7 @@ if ($lastRound) {
         currentUserId: <?= (int)($currentUser['id'] ?? 0) ?>,
         isReferee: <?= ($isReferee ?? false) ? 'true' : 'false' ?>,
         maxWins: <?= (int)($maxWins ?? 0) ?>,
+        status: '<?= $game->status ?>', // 🆕 اضافه شد
         participants: <?= json_encode(
                             array_map(fn($p) => [
                                 'id' => $p->id,
@@ -75,59 +76,24 @@ if ($lastRound) {
     console.log('🎮 TV GAME_CONFIG initialized:', window.GAME_CONFIG);
 </script>
 
+
+<!-- ======= TV SSE ======= -->
+<script>
+    window.TV_SSE_CONFIG = {
+        gameId: window.GAME_CONFIG.gameId,
+        currentUserId: window.GAME_CONFIG.currentUserId,
+        isReferee: window.GAME_CONFIG.isReferee,
+        maxWins: window.GAME_CONFIG.maxWins,
+        status: window.GAME_CONFIG.status, // 🆕 اضافه شد
+        participants: window.GAME_CONFIG.participants,
+        autoRefreshDelayMs: (window.SSE_FALLBACK_CONFIG?.enabled && window.SSE_FALLBACK_CONFIG?.refreshSeconds > 0) ?
+            window.SSE_FALLBACK_CONFIG.refreshSeconds * 1000 : 10000,
+    };
+
+    console.log('📡 TV_SSE_CONFIG set:', window.TV_SSE_CONFIG);
+</script>
+
+
+
 <!-- ======= TV SSE ======= -->
 <script src="/assets/js/tv-sse.js"></script>
-
-<!-- ======= رفرش خودکار هوشمند ======= -->
-<script>
-    (function() {
-        const gameConfig = window.GAME_CONFIG || {};
-        const gameStatus = '<?= $game->status ?>';
-        const gameId = gameConfig.gameId || 0;
-
-        const AUTO_REFRESH_STATUSES = ['active', 'paused'];
-        const shouldAutoRefresh = AUTO_REFRESH_STATUSES.includes(gameStatus);
-
-        let refreshTimer = null;
-        let lastEventTime = Date.now();
-        const REFRESH_INTERVAL = 10000;
-
-        console.log(`📺 TV Auto-Refresh: gameId=${gameId}, status=${gameStatus}, shouldRefresh=${shouldAutoRefresh}`);
-
-        if (!shouldAutoRefresh) {
-            console.log('⏹️ Auto-refresh disabled');
-            return;
-        }
-
-        function refreshPage() {
-            const timeSinceLastEvent = (Date.now() - lastEventTime) / 1000;
-            if (timeSinceLastEvent > 12) {
-                console.log('🔄 Auto-refreshing TV page');
-                location.reload();
-            } else {
-                console.log('⏳ SSE active, skipping auto-refresh');
-                resetTimer();
-            }
-        }
-
-        function resetTimer() {
-            if (refreshTimer) {
-                clearTimeout(refreshTimer);
-                refreshTimer = null;
-            }
-            refreshTimer = setTimeout(refreshPage, REFRESH_INTERVAL);
-        }
-
-        document.addEventListener('game_updated', function() {
-            lastEventTime = Date.now();
-            console.log('📨 game_updated received');
-            resetTimer();
-        });
-
-        resetTimer();
-
-        window.addEventListener('beforeunload', function() {
-            if (refreshTimer) clearTimeout(refreshTimer);
-        });
-    })();
-</script>

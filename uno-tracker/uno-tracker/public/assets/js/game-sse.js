@@ -1,12 +1,16 @@
 /**
- * 📡 Game SSE - نسخه نهایی با رفع خطای Swal
- *
- * 🆕 اصلاحات:
- * - رفع TypeError: Swal.fire(...).catch is not a function
- * - افزودن round_undone به event types
- * - بهبود error handling
+ * 📡 Game SSE - مدیریت Real-time و Notifications
+ * 🆕 نسخه نهایی با:
+ *   - Auto-refresh غیرفعال برای داور
+ *   - زمان قابل تنظیم از پنل مدیریت
+ *   - رفع خطای HTMX insertBefore
+ *   - بهبود پخش صدا
+ *   - رفع خطای Swal.fire(...).catch
  */
 
+// ═══════════════════════════════════════════════════════
+// 🎯 CONFIG
+// ═══════════════════════════════════════════════════════
 if (typeof SSE_CONFIG === "undefined") {
   var SSE_CONFIG = {
     gameId: window.GAME_CONFIG?.gameId || 0,
@@ -14,8 +18,11 @@ if (typeof SSE_CONFIG === "undefined") {
     isReferee: window.GAME_CONFIG?.isReferee || false,
     reloadDebounceMs: 1500,
     lastReloadTime: 0,
+    lastSseEventTime: Date.now(),
     pendingReload: false,
     reloadTimer: null,
+    autoRefreshInterval: null,
+    autoRefreshDelayMs: 10000, // مقدار پیش‌فرض (از تنظیمات به‌روز می‌شود)
     selfActions: new Set(),
   };
 } else {
@@ -27,6 +34,30 @@ if (typeof SSE_CONFIG === "undefined") {
   }
 }
 
+// 🆕 دریافت وضعیت بازی از GAME_CONFIG
+if (window.GAME_CONFIG && window.GAME_CONFIG.status) {
+  SSE_CONFIG.gameStatus = window.GAME_CONFIG.status;
+} else {
+  SSE_CONFIG.gameStatus = "active"; // مقدار پیش‌فرض
+}
+console.log("🎮 Game status:", SSE_CONFIG.gameStatus);
+
+// 🆕 بارگذاری تنظیمات Auto-Refresh از پنجره
+if (window.SSE_FALLBACK_CONFIG) {
+  const cfg = window.SSE_FALLBACK_CONFIG;
+  if (cfg.enabled && cfg.refreshSeconds > 0) {
+    SSE_CONFIG.autoRefreshDelayMs = cfg.refreshSeconds * 1000;
+    console.log(`🔄 Auto-refresh enabled: ${cfg.refreshSeconds}s`);
+  } else {
+    SSE_CONFIG.autoRefreshDelayMs = 0; // غیرفعال
+    console.log(`⏭️ Auto-refresh disabled by settings`);
+  }
+} else {
+  // Fallback: اگر تنظیمات موجود نبود، از مقدار پیش‌فرض ۱۰ ثانیه استفاده کن
+  console.warn("⚠️ SSE_FALLBACK_CONFIG not found, using default 10s");
+  SSE_CONFIG.autoRefreshDelayMs = 10000;
+}
+
 if (typeof GAME_PARTICIPANTS === "undefined") {
   var GAME_PARTICIPANTS = window.GAME_CONFIG?.participants || [];
 } else {
@@ -35,10 +66,13 @@ if (typeof GAME_PARTICIPANTS === "undefined") {
   }
 }
 
-console.log("📡 game-sse.js loaded");
+console.log("📡 game-sse.js loaded (v2.3)");
 console.log("🔧 SSE_CONFIG:", SSE_CONFIG);
-console.log("👥 GAME_PARTICIPANTS:", GAME_PARTICIPANTS);
+console.log("👤 isReferee:", SSE_CONFIG.isReferee);
 
+// ═══════════════════════════════════════════════════════
+// 🔌 SSE Connection
+// ═══════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded", function () {
   console.log("🔄 DOMContentLoaded fired in game-sse.js");
 
@@ -49,7 +83,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     window.SSE.connect("game_" + SSE_CONFIG.gameId, sseUrl);
 
-    // 🆕 همه event types معتبر
     const eventTypes = [
       "game_started",
       "round_recorded",
@@ -62,7 +95,6 @@ document.addEventListener("DOMContentLoaded", function () {
     ];
 
     eventTypes.forEach((eventType) => {
-      console.log("📨 Registering listener for:", eventType);
       window.SSE.on("game_" + SSE_CONFIG.gameId, eventType, (data) => {
         console.log("📨 SSE event received:", eventType, data);
         handleSSEEvent(eventType, data);
@@ -71,10 +103,92 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const heartbeatUrl = (window.BASE_URL || "") + "/game/" + SSE_CONFIG.gameId;
     window.SSE.startHeartbeat(heartbeatUrl);
+
+    // 🆕 شروع Auto-Refresh Fallback (فقط برای غیر داور و در صورت فعال بودن تنظیمات)
+    startAutoRefreshFallback();
   } else {
     console.warn("⚠️ SSE not available or gameId not set");
+    startAutoRefreshFallback();
   }
 });
+
+// ═══════════════════════════════════════════════════════
+// 🆕 AUTO-REFRESH FALLBACK
+// ═══════════════════════════════════════════════════════
+
+/**
+ * 🔄 شروع auto-refresh - فقط برای کاربران عادی و در صورت فعال بودن تنظیمات
+ */
+function startAutoRefreshFallback() {
+  // 🆕 اگر auto-refresh غیرفعال است یا داور است، شروع نکن
+  if (SSE_CONFIG.autoRefreshDelayMs === 0) {
+    console.log("⏭️ Auto-refresh disabled by settings");
+    return;
+  }
+
+  if (SSE_CONFIG.isReferee) {
+    console.log("⏭️ Auto-refresh disabled for referee");
+    if (SSE_CONFIG.autoRefreshInterval) {
+      clearInterval(SSE_CONFIG.autoRefreshInterval);
+      SSE_CONFIG.autoRefreshInterval = null;
+    }
+    return;
+  }
+
+  // 🆕 بررسی وضعیت بازی
+  if (
+    SSE_CONFIG.gameStatus === "finished" ||
+    SSE_CONFIG.gameStatus === "cancelled"
+  ) {
+    console.log(
+      `⏭️ Auto-refresh disabled for game status: ${SSE_CONFIG.gameStatus}`,
+    );
+    if (SSE_CONFIG.autoRefreshInterval) {
+      clearInterval(SSE_CONFIG.autoRefreshInterval);
+      SSE_CONFIG.autoRefreshInterval = null;
+    }
+    return;
+  }
+
+  if (SSE_CONFIG.autoRefreshInterval) {
+    clearInterval(SSE_CONFIG.autoRefreshInterval);
+  }
+
+  SSE_CONFIG.autoRefreshInterval = setInterval(() => {
+    // 🆕 چک مجدد: اگر کاربر داور شده یا تنظیمات غیرفعال شده، auto-refresh را متوقف کن
+    if (SSE_CONFIG.isReferee || SSE_CONFIG.autoRefreshDelayMs === 0) {
+      console.log("⏭️ Auto-refresh stopped (referee or disabled)");
+      clearInterval(SSE_CONFIG.autoRefreshInterval);
+      SSE_CONFIG.autoRefreshInterval = null;
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastSse = now - SSE_CONFIG.lastSseEventTime;
+
+    if (timeSinceLastSse > SSE_CONFIG.autoRefreshDelayMs) {
+      console.log(
+        `⏰ Auto-refresh triggered (no SSE for ${Math.round(timeSinceLastSse / 1000)}s)`,
+      );
+      performReload("auto_refresh");
+      SSE_CONFIG.lastSseEventTime = Date.now();
+    }
+  }, 5000); // هر ۵ ثانیه چک کن
+
+  console.log(
+    `✅ Auto-refresh started for non-referee (delay: ${SSE_CONFIG.autoRefreshDelayMs / 1000}s)`,
+  );
+}
+
+function stopAutoRefreshFallback() {
+  if (SSE_CONFIG.autoRefreshInterval) {
+    clearInterval(SSE_CONFIG.autoRefreshInterval);
+    SSE_CONFIG.autoRefreshInterval = null;
+    console.log("⏹️ Auto-refresh stopped");
+  }
+}
+
+window.addEventListener("beforeunload", stopAutoRefreshFallback);
 
 // ═══════════════════════════════════════════════════════
 // 👤 User Role Detection
@@ -102,6 +216,7 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "round_winner";
       }
+
       if (
         winnerParticipant?.team_id &&
         currentParticipant.team_id &&
@@ -109,6 +224,7 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "round_winner";
       }
+
       return "round_loser";
     }
 
@@ -128,6 +244,7 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "game_winner";
       }
+
       if (
         winnerParticipant?.team_id &&
         currentParticipant.team_id &&
@@ -135,6 +252,7 @@ function getUserRoleInEvent(eventType, data) {
       ) {
         return "game_winner";
       }
+
       return "game_loser";
     }
 
@@ -180,7 +298,7 @@ function getTimerDuration(userRole) {
 }
 
 // ═══════════════════════════════════════════════════════
-// 🎵 Sound Management
+// 🎵 Sound Management (بهبود یافته)
 // ═══════════════════════════════════════════════════════
 
 function playAppropriateSound(eventType, userRole, eventData) {
@@ -189,84 +307,51 @@ function playAppropriateSound(eventType, userRole, eventData) {
     return;
   }
 
-  // 🎯 اولویت ۱: استفاده از playForEvent (تنظیمات دیتابیس)
-  if (typeof window.SoundManager.playForEvent === "function") {
-    let actualEvent = eventType;
+  let actualEvent = eventType;
 
-    // 🆕 برای round_recorded، بر اساس userRole تصمیم بگیر
-    if (eventType === "round_recorded") {
-      if (userRole === "round_winner") {
-        actualEvent = "round_winner";
-      } else if (userRole === "round_loser") {
-        actualEvent = "round_loser";
-      }
-    }
-
-    // 🆕 برای game_finished، بر اساس userRole تصمیم بگیر
-    if (eventType === "game_finished") {
-      if (userRole === "game_winner") {
-        actualEvent = "game_winner";
-        showConfetti();
-      } else if (userRole === "game_loser") {
-        actualEvent = "game_loser";
-      }
-    }
-
-    // ساخت data غنی
-    const enrichedData = { ...(eventData || {}) };
-    if (eventType === "game_status_changed" && eventData?.status) {
-      enrichedData.status = eventData.status;
-    }
-    enrichedData.user_role = userRole;
-    enrichedData.is_winner =
-      userRole === "round_winner" || userRole === "game_winner";
-
-    console.log(
-      `🎵 Playing sound for event: ${actualEvent} (original: ${eventType}, role: ${userRole})`,
-      enrichedData,
-    );
-
-    window.SoundManager.playForEvent(actualEvent, enrichedData);
-    return;
+  if (eventType === "round_recorded") {
+    if (userRole === "round_winner") actualEvent = "round_winner";
+    else if (userRole === "round_loser") actualEvent = "round_loser";
   }
 
-  // 🎯 اولویت ۲: Fallback به متدهای قدیمی
-  console.log(`⚠️ playForEvent not available, using legacy methods`);
-  switch (eventType) {
-    case "game_started":
-      window.SoundManager.playGameStart();
-      break;
-    case "round_recorded":
-      if (userRole === "round_winner") {
-        window.SoundManager.playRoundWin();
-      } else if (userRole === "round_loser") {
-        window.SoundManager.playRoundLose();
-      } else {
-        window.SoundManager.playRoundRecorded();
+  if (eventType === "game_finished") {
+    if (userRole === "game_winner") {
+      actualEvent = "game_winner";
+      showConfetti();
+    } else if (userRole === "game_loser") {
+      actualEvent = "game_loser";
+    }
+  }
+
+  const enrichedData = { ...(eventData || {}) };
+  if (eventType === "game_status_changed" && eventData?.status) {
+    enrichedData.status = eventData.status;
+  }
+  enrichedData.user_role = userRole;
+  enrichedData.is_winner =
+    userRole === "round_winner" || userRole === "game_winner";
+
+  console.log(
+    `🎵 Playing sound: ${actualEvent} (original: ${eventType}, role: ${userRole})`,
+    enrichedData,
+  );
+
+  try {
+    if (typeof window.SoundManager.playForEvent === "function") {
+      window.SoundManager.playForEvent(actualEvent, enrichedData);
+    } else {
+      console.warn("⚠️ playForEvent not available, using fallback");
+      window.SoundManager.play("default", { volume: 0.6 });
+    }
+  } catch (error) {
+    console.error("❌ Error playing sound:", error);
+    try {
+      if (typeof window.SoundManager.play === "function") {
+        window.SoundManager.play("default", { volume: 0.6 });
       }
-      break;
-    case "round_undone":
-      window.SoundManager.playDefault();
-      break;
-    case "game_finished":
-      if (userRole === "game_winner") {
-        window.SoundManager.playGameWin();
-        showConfetti();
-      } else {
-        window.SoundManager.playRoundLose();
-      }
-      break;
-    case "game_status_changed":
-      if (eventData?.status === "paused") {
-        window.SoundManager.playGamePause();
-      } else if (eventData?.status === "active") {
-        window.SoundManager.playGameResume();
-      } else {
-        window.SoundManager.playDefault();
-      }
-      break;
-    default:
-      window.SoundManager.playDefault();
+    } catch (e) {
+      console.error("❌ Final fallback failed:", e);
+    }
   }
 }
 
@@ -303,6 +388,30 @@ function showConfetti() {
 function handleSSEEvent(eventType, data) {
   console.log(`📨 SSE Event: ${eventType}`, data);
 
+  // 🆕 به‌روزرسانی زمان آخرین SSE
+  SSE_CONFIG.lastSseEventTime = Date.now();
+
+  if (eventType === "game_status_changed") {
+    const newStatus = data.status;
+    console.log(`🔄 Game status changed to: ${newStatus}`);
+    SSE_CONFIG.gameStatus = newStatus;
+
+    // اگر وضعیت finished یا cancelled شد، auto-refresh را متوقف کن
+    if (newStatus === "finished" || newStatus === "cancelled") {
+      if (SSE_CONFIG.autoRefreshInterval) {
+        clearInterval(SSE_CONFIG.autoRefreshInterval);
+        SSE_CONFIG.autoRefreshInterval = null;
+        console.log("⏹️ Auto-refresh stopped (game finished/cancelled)");
+      }
+      return; // نیازی به ادامه نیست
+    }
+
+    // اگر وضعیت به active/pending/paused تغییر کرد، auto-refresh را شروع کن (اگر قبلاً شروع نشده)
+    if (!SSE_CONFIG.autoRefreshInterval) {
+      startAutoRefreshFallback();
+    }
+  }
+
   if (data.source_user_id && data.source_user_id === SSE_CONFIG.currentUserId) {
     console.log("⏭️ Ignoring own event (source_user_id matches)");
     return;
@@ -312,12 +421,14 @@ function handleSSEEvent(eventType, data) {
     if (data.new_referee_id === SSE_CONFIG.currentUserId) {
       console.log("🎯 We are the new referee");
       SSE_CONFIG.isReferee = true;
+      stopAutoRefreshFallback();
       setTimeout(() => performReload(eventType), 1000);
       showCustomNotification(eventType, data, "participant");
       return;
     } else if (data.old_referee_id === SSE_CONFIG.currentUserId) {
       console.log("⏭️ We transferred referee role");
       SSE_CONFIG.isReferee = false;
+      setTimeout(() => startAutoRefreshFallback(), 2000);
       setTimeout(() => performReload(eventType), 1000);
       showCustomNotification(eventType, data, "participant");
       return;
@@ -339,7 +450,7 @@ function handleSSEEvent(eventType, data) {
 }
 
 // ═══════════════════════════════════════════════════════
-// 🎨 Notification UI - 🆕 رفع خطای .catch
+// 🎨 Notification UI - 🆕 نسخه اصلاح‌شده با مدیریت خطا
 // ═══════════════════════════════════════════════════════
 
 function showCustomNotification(eventType, data, userRole) {
@@ -384,11 +495,9 @@ function showCustomNotification(eventType, data, userRole) {
 
     case "game_finished":
       if (userRole === "game_winner") {
-        if (isTeammateWinner) {
-          title = `🏆🎉 تبریک! تیم شما برنده بازی شد!`;
-        } else {
-          title = `🏆🎉 تبریک! شما برنده بازی شدید!`;
-        }
+        title = isTeammateWinner
+          ? `🏆🎉 تبریک! تیم شما برنده بازی شد!`
+          : `🏆🎉 تبریک! شما برنده بازی شدید!`;
       } else if (userRole === "game_loser") {
         title = `💔 بازی پایان یافت - برنده: ${data.winner?.name || "نامشخص"}`;
       } else {
@@ -411,19 +520,24 @@ function showCustomNotification(eventType, data, userRole) {
       break;
 
     case "game_target_changed":
-      if (data.new_target > data.old_target) {
-        title = `🎯 هدف بازی از ${data.old_target} به ${data.new_target} افزایش یافت`;
-      } else {
-        title = `🎯 هدف بازی از ${data.old_target} به ${data.new_target} کاهش یافت`;
-      }
+      title =
+        data.new_target > data.old_target
+          ? `🎯 هدف بازی از ${data.old_target} به ${data.new_target} افزایش یافت`
+          : `🎯 هدف بازی از ${data.old_target} به ${data.new_target} کاهش یافت`;
       break;
 
     case "game_referee_changed":
       title = `👤 داور بازی به ${data.new_referee_name || "کاربر جدید"} منتقل شد`;
       break;
+
+    case "auto_refresh":
+      return;
   }
 
-  if (!title || typeof Swal === "undefined") return;
+  if (!title || typeof Swal === "undefined") {
+    console.warn("⚠️ No title or Swal not available");
+    return;
+  }
 
   if (Swal.isVisible()) {
     Swal.close();
@@ -448,37 +562,45 @@ function showCustomNotification(eventType, data, userRole) {
     },
   };
 
-  // 🆕 رفع خطای .catch با استفاده از try/catch و Promise صحیح
+  // ✅ نسخه اصلاح‌شده با مدیریت خطای Swal.fire(...).catch
   try {
-    const resultPromise = Swal.fire(swalConfig);
+    const result = Swal.fire(swalConfig);
 
-    // 🆕 چک اینکه آیا resultPromise یک Promise واقعی است
-    if (resultPromise && typeof resultPromise.then === "function") {
-      resultPromise
-        .then((result) => {
-          if (result.isConfirmed) {
+    // بررسی اینکه result یک Promise معتبر است
+    if (result && typeof result.then === "function") {
+      result
+        .then((res) => {
+          if (res.isConfirmed) {
             console.log('✅ User clicked "عالی!"');
-          } else if (result.dismiss === Swal.DismissReason.timer) {
+          } else if (res.dismiss === Swal.DismissReason.timer) {
             console.log("⏰ Auto-closed by timer");
-          } else if (result.dismiss === Swal.DismissReason.close) {
+          } else if (res.dismiss === Swal.DismissReason.close) {
             console.log("❌ User clicked close");
-          } else if (result.dismiss === Swal.DismissReason.esc) {
+          } else if (res.dismiss === Swal.DismissReason.esc) {
             console.log("⌨️ User pressed Escape");
           }
         })
         .catch((err) => {
-          console.warn("⚠️ Swal error (caught):", err);
+          console.warn("⚠️ Swal promise error:", err);
         });
     } else {
-      console.warn("⚠️ Swal.fire did not return a Promise");
+      console.warn("⚠️ Swal.fire did not return a Promise. Result:", result);
+      // Fallback: نمایش پیام با alert اگر Swal کار نکرد
+      if (isGameWinner) {
+        alert(title);
+      }
     }
-  } catch (err) {
-    console.warn("⚠️ Swal error (try/catch):", err);
+  } catch (error) {
+    console.warn("⚠️ Swal.fire threw an error:", error);
+    // Fallback: نمایش پیام با alert در صورت بروز خطا
+    if (isGameWinner) {
+      alert(title);
+    }
   }
 }
 
 // ═══════════════════════════════════════════════════════
-// 🔄 Reload Management
+// 🔄 Reload Management (بهبود یافته برای رفع خطای insertBefore)
 // ═══════════════════════════════════════════════════════
 
 function scheduleReload(eventType, data) {
@@ -506,14 +628,27 @@ function performReload(eventType) {
     SSE_CONFIG.reloadTimer = null;
   }
 
-  if (typeof htmx !== "undefined") {
-    const url =
-      (window.BASE_URL || "") + `/game/${SSE_CONFIG.gameId}?partial=1`;
-    console.log(`🔄 Reloading: ${url}`);
+  const targetId = "#game-page-content";
+  const targetElement = document.querySelector(targetId);
+  if (!targetElement || !targetElement.isConnected) {
+    console.warn(`⚠️ Target ${targetId} not available, using full reload`);
+    location.reload();
+    return;
+  }
 
+  if (typeof htmx === "undefined") {
+    console.warn("⚠️ htmx not available, using full reload");
+    location.reload();
+    return;
+  }
+
+  const url = (window.BASE_URL || "") + `/game/${SSE_CONFIG.gameId}?partial=1`;
+  console.log(`🔄 Reloading: ${url} (trigger: ${eventType})`);
+
+  try {
     htmx
       .ajax("GET", url, {
-        target: "#game-page-content",
+        target: targetId,
         swap: "innerHTML",
         headers: {
           "HX-Request": "true",
@@ -521,21 +656,62 @@ function performReload(eventType) {
         },
       })
       .then(() => {
-        const content = document.getElementById("game-page-content");
-        if (content) {
+        const content = document.querySelector(targetId);
+        if (content && content.isConnected) {
           htmx.process(content);
           if (window.GAME_CONFIG) {
+            const wasReferee = SSE_CONFIG.isReferee;
             SSE_CONFIG.isReferee =
               window.GAME_CONFIG.isReferee ?? SSE_CONFIG.isReferee;
+            GAME_PARTICIPANTS = window.GAME_CONFIG.participants || [];
+
+            // 🆕 به‌روزرسانی وضعیت بازی
+            const newStatus = window.GAME_CONFIG.status;
+            if (newStatus) {
+              SSE_CONFIG.gameStatus = newStatus;
+              console.log(`🔄 Game status after reload: ${newStatus}`);
+            }
+
+            // مدیریت تغییر نقش داور
+            if (!wasReferee && SSE_CONFIG.isReferee) {
+              console.log("🎯 User became referee after reload");
+              stopAutoRefreshFallback();
+            } else if (wasReferee && !SSE_CONFIG.isReferee) {
+              console.log("🔄 User no longer referee after reload");
+              startAutoRefreshFallback();
+            } else {
+              // 🆕 اگر نقش داور تغییر نکرده، بر اساس وضعیت بازی Auto-Refresh را تنظیم کن
+              if (
+                SSE_CONFIG.gameStatus === "finished" ||
+                SSE_CONFIG.gameStatus === "cancelled"
+              ) {
+                stopAutoRefreshFallback();
+                console.log(
+                  `⏹️ Auto-refresh stopped (game ${SSE_CONFIG.gameStatus})`,
+                );
+              } else {
+                // اگر Auto-Refresh در حال اجرا نیست، آن را شروع کن
+                if (!SSE_CONFIG.autoRefreshInterval) {
+                  startAutoRefreshFallback();
+                }
+              }
+            }
           }
           console.log("✅ Reload completed successfully");
+        } else {
+          console.warn("⚠️ Content not found after reload");
+          location.reload();
         }
       })
       .catch((error) => {
         console.error("❌ HTMX reload failed:", error);
-        location.reload();
+        if (error.message && error.message.includes("insertBefore")) {
+          console.error("💥 insertBefore error detected, full reload");
+          location.reload();
+        }
       });
-  } else {
+  } catch (error) {
+    console.error("❌ HTMX ajax error:", error);
     location.reload();
   }
 }
@@ -546,3 +722,24 @@ function markSelfAction(eventType) {
     SSE_CONFIG.selfActions.delete(eventType);
   }, 3000);
 }
+
+// 🆕 هندلر خطای insertBefore سراسری
+window.addEventListener("error", function (event) {
+  if (
+    event.message &&
+    event.message.includes("insertBefore") &&
+    event.filename &&
+    event.filename.includes("htmx")
+  ) {
+    console.error("💥 Caught HTMX insertBefore error:", event.message);
+    event.preventDefault();
+    setTimeout(() => {
+      if (SSE_CONFIG.gameId > 0) {
+        performReload("error_recovery");
+      }
+    }, 1000);
+    return true;
+  }
+});
+
+console.log("✅ game-sse.js v2.3 initialized (with all fixes)");
