@@ -1,3 +1,4 @@
+<div dir="rtl">
 ## 🎮 UNO Tracker
 
 <p align="center">
@@ -559,3 +560,4 @@ docker-compose up -d
   <br>
   <sub>بدون فریم‌ورک • بدون Node.js • بدون WebSocket • Zero Hardcode</sub>
 </p>
+</div>
