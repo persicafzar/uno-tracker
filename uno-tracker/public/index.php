@@ -447,6 +447,10 @@ $router->get('/admin/titles', 'Presentation\Controllers\AdminController@titles',
     \Presentation\Middleware\AdminMiddleware::class,
 ]);
 
+$router->post('/admin/titles/recalculate-titles', 'Presentation\Controllers\AdminController@recalculateAllTitles', [
+    \Presentation\Middleware\AuthMiddleware::class,
+    \Presentation\Middleware\AdminMiddleware::class,
+]);
 $router->post('/admin/titles/create', 'Presentation\Controllers\AdminController@createTitle', [
     \Presentation\Middleware\AuthMiddleware::class,
     \Presentation\Middleware\AdminMiddleware::class,
@@ -550,6 +554,7 @@ $router->post('/admin/users/recalculate-all', 'Presentation\Controllers\AdminCon
     \Presentation\Middleware\AuthMiddleware::class,
     \Presentation\Middleware\AdminMiddleware::class,
 ]);
+
 
 $router->get('/admin/games/{id}', 'Presentation\Controllers\AdminController@gameDetail', [
     \Presentation\Middleware\AuthMiddleware::class,

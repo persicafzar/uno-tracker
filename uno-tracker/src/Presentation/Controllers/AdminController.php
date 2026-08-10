@@ -2151,4 +2151,67 @@ class AdminController
             ],
         ];
     }
+
+    /**
+     * 🆕 بازمحاسبه القاب برای همه کاربران (بدون تغییر سایر آمار)
+     */
+    public function recalculateAllTitles(Request $request): void
+    {
+        // فقط super_admin اجازه دارد
+        if (!$this->auth->isSuperAdmin()) {
+            $this->response->json([
+                'success' => false,
+                'error' => 'فقط مدیر ارشد می‌تواند این عملیات را انجام دهد'
+            ]);
+            return;
+        }
+
+        $db = \Core\Database::getInstance();
+        $gamificationService = new \Application\Services\GamificationService();
+
+        // دریافت همه کاربران فعال
+        $users = $db->fetchAll("SELECT id FROM users WHERE status = 'active'");
+        $totalUsers = count($users);
+        $successCount = 0;
+        $failCount = 0;
+        $failedUsers = [];
+
+        foreach ($users as $user) {
+            try {
+                $result = $gamificationService->checkAndUpdateTitles((int)$user['id']);
+                $successCount++;
+            } catch (\Throwable $e) {
+                $failCount++;
+                $failedUsers[] = $user['id'];
+                error_log("Error recalculating titles for user {$user['id']}: " . $e->getMessage());
+            }
+        }
+
+        // ثبت لاگ
+        $admin = $this->auth->user();
+        $this->adminRepo->createLog([
+            'admin_id' => $admin['id'],
+            'action_type' => 'title_recalculate',
+            'target_type' => 'title',
+            'description' => "بازمحاسبه القاب برای {$totalUsers} کاربر (موفق: {$successCount}، ناموفق: {$failCount})",
+            'new_data' => [
+                'total' => $totalUsers,
+                'success' => $successCount,
+                'failed' => $failCount,
+                'failed_users' => $failedUsers,
+            ],
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null,
+        ]);
+
+        $this->response->json([
+            'success' => true,
+            'message' => "بازمحاسبه القاب برای {$totalUsers} کاربر انجام شد. موفق: {$successCount}، ناموفق: {$failCount}",
+            'stats' => [
+                'total' => $totalUsers,
+                'success' => $successCount,
+                'failed' => $failCount,
+            ]
+        ]);
+    }
 }

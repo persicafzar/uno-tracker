@@ -14,14 +14,24 @@
             </h2>
             <p class="text-gray-600 text-sm font-medium mt-0.5">مدیریت عناوین قابل کسب توسط بازیکنان</p>
         </div>
-        <button type="button"
-            @click="openCreateModal()"
-            class="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02] flex items-center gap-2 text-sm sm:text-base">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>عنوان جدید</span>
-        </button>
+        <div class="flex items-center justify-between mb-4">
+            <button
+                onclick="recalculateTitles()"
+                id="recalculate-titles-btn"
+                class="bg-gradient-to-r duration-300 flex font-bold from-orange-500 gap-2 hover:from-orange-600 hover:scale-[1.02] hover:shadow-lg hover:to-red-600 items-center ml-2 px-4 py-2 rounded-2xl shadow-md sm:px-5 sm:py-2.5 sm:text-base text-sm text-white to-red-500 transition-all">
+                <span>🔄</span>
+                <span>به‌روزرسانی القاب</span>
+            </button>
+            <button type="button"
+                @click="openCreateModal()"
+                class="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02] flex items-center gap-2 text-sm sm:text-base">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>عنوان جدید</span>
+            </button>
+        </div>
+
     </div>
 
     <!-- Info Card -->
@@ -298,5 +308,53 @@
                 });
             }
         };
+    }
+</script>
+<script>
+    async function recalculateTitles() {
+        const btn = document.getElementById('recalculate-titles-btn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⏳ در حال اجرا...';
+
+        try {
+            const response = await fetch('/admin/titles/recalculate-titles', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '✅ بازمحاسبه کامل شد',
+                    text: result.message,
+                    confirmButtonColor: '#4f46e5',
+                });
+                // پس از ۲ ثانیه صفحه را رفرش کنید تا داده‌های جدید نمایش داده شوند
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: '❌ خطا',
+                    text: result.error || 'خطا در بازمحاسبه القاب',
+                    confirmButtonColor: '#ef4444',
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: '❌ خطا در ارتباط با سرور',
+                text: error.message,
+                confirmButtonColor: '#ef4444',
+            });
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 </script>

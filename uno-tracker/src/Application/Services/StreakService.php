@@ -156,58 +156,68 @@ class StreakService
      * @param int $userId شناسه کاربر
      * @return array ['current_streak' => int, 'best_streak' => int, 'last_win_at' => string|null]
      */
+
+    /**
+     * بازمحاسبه کامل زنجیره پیروزی با در نظر گرفتن تاریخ ریست
+     */
     public function recalculateStreak(int $userId): array
     {
-        // 🆕 دریافت تمام بازی‌های پایان‌یافته کاربر به ترتیب زمان
+        // خواندن تاریخ ریست از تنظیمات
+        $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
+        $resetDate = $settingsRepo->get('streak_reset_date', null);
+
+        $params = [$userId];
+        $resetCondition = '';
+        if ($resetDate) {
+            $resetCondition = " AND g.finished_at >= ?";
+            $params[] = $resetDate;
+        }
+
+        // دریافت بازی‌های بعد از تاریخ ریست
         $games = $this->db->fetchAll(
             "SELECT 
             g.id,
             g.finished_at,
-            gp.is_winner  -- 🆕 استفاده از فیلد is_winner به‌جای محاسبه دستی
+            gp.is_winner
          FROM games g
          INNER JOIN game_participants gp ON g.id = gp.game_id
          WHERE gp.user_id = ? 
          AND g.status = 'finished'
          AND g.finished_at IS NOT NULL
+         {$resetCondition}
          ORDER BY g.finished_at ASC",
-            [$userId]
+            $params
         );
-
-        // 🆕 خواندن مدت زمان مجاز از تنظیمات
-        $settingsRepo = \Infrastructure\Repositories\SettingsRepository::getInstance();
-        $resetHours = (int) $settingsRepo->get('streak_reset_hours', 24);
-        $resetSeconds = $resetHours * 3600;
 
         $currentStreak = 0;
         $bestStreak = 0;
         $lastWinAt = null;
 
+        // خواندن مدت زمان مجاز از تنظیمات
+        $resetHours = (int) $settingsRepo->get('streak_reset_hours', 24);
+        $resetSeconds = $resetHours * 3600;
+
         foreach ($games as $game) {
             if ($game['is_winner']) {
-                // بررسی زمان گذشته از آخرین برد (اگر وجود داشته باشد)
                 if ($lastWinAt === null) {
-                    // اولین برد در بازه یا بعد از باخت
                     $currentStreak = 1;
                 } else {
                     $timeDiff = strtotime($game['finished_at']) - strtotime($lastWinAt);
                     if ($timeDiff > $resetSeconds) {
-                        // زمان مجاز گذشته → استریک جدید
                         $currentStreak = 1;
                     } else {
-                        // برد متوالی معتبر → افزایش استریک
                         $currentStreak++;
                     }
                 }
                 $lastWinAt = $game['finished_at'];
                 $bestStreak = max($bestStreak, $currentStreak);
             } else {
-                // 🆕 باخت → استریک می‌شکند و آخرین برد هم ریست می‌شود
                 $currentStreak = 0;
-                $lastWinAt = null; // 🔑 کلیدی: استریک جدید از برد بعدی شروع می‌شود
+                $lastWinAt = null; // باخت باعث ریست کامل می‌شود
             }
         }
 
-        // 🆕 ذخیره در دیتابیس
+        // ذخیره در دیتابیس
         $existing = $this->db->fetchOne(
             "SELECT user_id FROM user_streaks WHERE user_id = ?",
             [$userId]
