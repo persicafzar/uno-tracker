@@ -377,4 +377,125 @@ class UserStatsService
             'usage_count' => (int) $card['usage_count'],
         ], $winningCards);
     }
+    /**
+     * 🆕 گرفتن آمار استفاده از همه کارت‌ها (بدون محدودیت)
+     */
+    public function getAllCardUsageStats(int $userId): array
+    {
+        $winningCards = $this->db->fetchAll(
+            "SELECT c.id, c.name, c.emoji, c.rarity, COUNT(gr.id) as usage_count
+         FROM game_rounds gr
+         JOIN game_participants gp ON gr.winner_participant_id = gp.id
+         JOIN cards c ON gr.winning_card_id = c.id
+         WHERE gp.user_id = ?
+         AND gr.winning_card_id IS NOT NULL
+         GROUP BY c.id, c.name, c.emoji, c.rarity
+         ORDER BY usage_count DESC",
+            [$userId]
+        );
+
+        return array_map(fn($card) => [
+            'id' => (int) $card['id'],
+            'name' => $card['name'],
+            'emoji' => !empty($card['emoji']) ? $card['emoji'] : mb_substr($card['name'], 0, 1),
+            'rarity' => $card['rarity'] ?? 'common',
+            'usage_count' => (int) $card['usage_count'],
+        ], $winningCards);
+    }
+
+
+    /**
+     * 🆕 گرفتن آمار دورهای بازی (Round Stats) - فقط بازی‌های پایان‌یافته
+     * شامل: تعداد کل دورها، دورهای انفرادی و تیمی، برد و باخت در هر حالت
+     */
+    public function getRoundStats(int $userId): array
+    {
+        // ۱. دریافت تمام شرکت‌های کاربر در بازی‌های پایان‌یافته
+        $participants = $this->db->fetchAll(
+            "SELECT gp.id as participant_id, gp.team_id, g.id as game_id, g.game_mode
+         FROM game_participants gp
+         JOIN games g ON gp.game_id = g.id
+         WHERE gp.user_id = ? AND g.status = 'finished'",  // فقط finished
+            [$userId]
+        );
+
+        if (empty($participants)) {
+            return [
+                'total' => 0,
+                'solo' => ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0],
+                'team' => ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0],
+                'overall_win_rate' => 0,
+                'note' => 'هیچ بازی پایان‌یافته‌ای یافت نشد',
+            ];
+        }
+
+        $gameIds = array_column($participants, 'game_id');
+        $gameIdsPlaceholder = implode(',', array_fill(0, count($gameIds), '?'));
+
+        // ۲. تعداد کل دورها بر اساس حالت بازی (فقط بازی‌های finished)
+        $roundsResult = $this->db->fetchAll(
+            "SELECT g.game_mode, COUNT(gr.id) as total_rounds
+         FROM game_rounds gr
+         JOIN games g ON gr.game_id = g.id
+         WHERE g.id IN ({$gameIdsPlaceholder}) AND g.status = 'finished'
+         GROUP BY g.game_mode",
+            $gameIds
+        );
+
+        $soloTotal = 0;
+        $teamTotal = 0;
+        foreach ($roundsResult as $row) {
+            if ($row['game_mode'] === 'solo') {
+                $soloTotal = (int)$row['total_rounds'];
+            } elseif ($row['game_mode'] === 'friendly') {
+                $teamTotal = (int)$row['total_rounds'];
+            }
+        }
+        $totalRounds = $soloTotal + $teamTotal;
+
+        // ۳. بردهای دور در حالت انفرادی (فقط finished)
+        $soloWins = (int) $this->db->fetchOne(
+            "SELECT COUNT(gr.id) as wins
+         FROM game_rounds gr
+         JOIN games g ON gr.game_id = g.id
+         JOIN game_participants gp ON gp.game_id = g.id AND gp.user_id = ?
+         WHERE g.game_mode = 'solo' AND g.status = 'finished' AND gr.winner_participant_id = gp.id",
+            [$userId]
+        )['wins'] ?? 0;
+
+        // ۴. بردهای دور در حالت تیمی (تیم کاربر برنده دور باشد) - فقط finished
+        $teamWins = (int) $this->db->fetchOne(
+            "SELECT COUNT(gr.id) as wins
+         FROM game_rounds gr
+         JOIN games g ON gr.game_id = g.id
+         JOIN game_participants gp_winner ON gr.winner_participant_id = gp_winner.id
+         JOIN game_participants gp_user ON gp_user.game_id = g.id AND gp_user.user_id = ?
+         WHERE g.game_mode = 'friendly' AND g.status = 'finished' AND gp_winner.team_id = gp_user.team_id",
+            [$userId]
+        )['wins'] ?? 0;
+
+        // ۵. محاسبه باخت‌ها
+        $soloLosses = $soloTotal - $soloWins;
+        $teamLosses = $teamTotal - $teamWins;
+
+        return [
+            'total' => $totalRounds,
+            'solo' => [
+                'total' => $soloTotal,
+                'wins' => $soloWins,
+                'losses' => $soloLosses,
+                'win_rate' => $soloTotal > 0 ? round(($soloWins / $soloTotal) * 100, 1) : 0,
+            ],
+            'team' => [
+                'total' => $teamTotal,
+                'wins' => $teamWins,
+                'losses' => $teamLosses,
+                'win_rate' => $teamTotal > 0 ? round(($teamWins / $teamTotal) * 100, 1) : 0,
+            ],
+            'overall_win_rate' => $totalRounds > 0
+                ? round((($soloWins + $teamWins) / $totalRounds) * 100, 1)
+                : 0,
+            'note' => 'تنها بازی‌های پایان‌یافته محاسبه شده‌اند.',
+        ];
+    }
 }

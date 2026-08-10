@@ -9,6 +9,16 @@ $dailyStatsJson = json_encode($profile['daily_stats'] ?? [], JSON_UNESCAPED_UNIC
 $dayOfWeekStatsJson = json_encode($profile['day_of_week_stats'] ?? [], JSON_UNESCAPED_UNICODE);
 $cardStatsJson = json_encode($profile['card_stats'] ?? [], JSON_UNESCAPED_UNICODE);
 
+
+
+// 🆕 دریافت همه کارت‌ها با آمار کامل (بدون محدودیت)
+$userId = $profile['user_id'] ?? $profile['id'] ?? 0;
+$userStatsService = new \Application\Services\UserStatsService();
+$allCardStats = $userStatsService->getAllCardUsageStats($userId);
+$allCardStatsJson = json_encode($allCardStats, JSON_UNESCAPED_UNICODE);
+
+
+
 // اطلاعات عنوان
 $titleInfo = $profile['title_info'] ?? null;
 $userTitles = $profile['user_titles'] ?? [];
@@ -229,7 +239,7 @@ $conditionLabels = [
             <div class="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div class="relative z-10">
                 <div class="text-2xl sm:text-3xl font-black text-white drop-shadow"><?= number_format($profile['win_rate'] ?? 0, 1) ?>%</div>
-                <div class="text-white/80 text-xs sm:text-sm font-medium mt-0.5">نرخ برد</div>
+                <div class="text-white/80 text-xs sm:text-sm font-medium mt-0.5">نرخ برد بازی‌ها</div>
             </div>
         </div>
         <div class="relative overflow-hidden bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl p-3 sm:p-4 text-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
@@ -408,6 +418,135 @@ $conditionLabels = [
                     <?php endforeach; ?>
                 </div>
             </div>
+            <?php
+            $roundStats = $roundStats ?? ['total' => 0, 'solo' => ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0], 'team' => ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0], 'overall_win_rate' => 0];
+            $soloData = $roundStats['solo'] ?? ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0];
+            $teamData = $roundStats['team'] ?? ['total' => 0, 'wins' => 0, 'losses' => 0, 'win_rate' => 0];
+            $totalRounds = $roundStats['total'] ?? 0;
+            $overallWinRate = $roundStats['overall_win_rate'] ?? 0;
+            ?>
+
+            <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-5">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-5 pb-3 border-b-2 border-gray-200/50">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">🔄</span>
+                        <h3 class="text-lg font-black text-gray-800 tracking-tight">آمار دورها</h3>
+                        <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                            <?= number_format($totalRounds) ?> دور
+                        </span>
+                    </div>
+                    <span class="text-sm font-bold text-gray-500">
+                        نرخ برد دورها: <span class="text-indigo-600"><?= $overallWinRate ?>%</span>
+                    </span>
+                </div>
+
+                <!-- 📊 کارت‌های خلاصه -->
+                <div class="grid !grid-cols-2 sm:!grid-cols-4 gap-3 mb-6">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 text-center border border-blue-200">
+                        <div class="text-2xl font-black text-blue-700"><?= number_format($totalRounds) ?></div>
+                        <div class="text-xs text-blue-600 font-medium">کل دورها</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-3 text-center border border-emerald-200">
+                        <div class="text-2xl font-black text-emerald-700"><?= number_format($soloData['total']) ?></div>
+                        <div class="text-xs text-emerald-600 font-medium">انفرادی</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 text-center border border-purple-200">
+                        <div class="text-2xl font-black text-purple-700"><?= number_format($teamData['total']) ?></div>
+                        <div class="text-xs text-purple-600 font-medium">تیمی</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-3 text-center border border-amber-200">
+                        <div class="text-2xl font-black text-amber-700"><?= number_format($soloData['wins'] + $teamData['wins']) ?></div>
+                        <div class="text-xs text-amber-600 font-medium">کل برد دور</div>
+                    </div>
+                </div>
+
+                <!-- 📈 نمودار میله‌ای -->
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <span>📊</span> مقایسه برد و باخت در حالت‌های انفرادی و تیمی
+                    </h4>
+                    <div class="relative" style="height: 220px;">
+                        <canvas id="roundStatsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 📋 جدول جزئیات -->
+                <div class="mt-5 overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 border-b-2 border-gray-200">
+                                <th class="text-right px-3 py-2 font-bold text-gray-700">حالت</th>
+                                <th class="text-center px-3 py-2 font-bold text-gray-700">کل دورها</th>
+                                <th class="text-center px-3 py-2 font-bold text-emerald-600">برد</th>
+                                <th class="text-center px-3 py-2 font-bold text-rose-600">باخت</th>
+                                <th class="text-center px-3 py-2 font-bold text-gray-700">نرخ برد</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50/50 transition">
+                                <td class="px-3 py-2.5 font-bold text-blue-700">👤 انفرادی</td>
+                                <td class="text-center font-bold"><?= number_format($soloData['total']) ?></td>
+                                <td class="text-center text-emerald-600 font-bold"><?= number_format($soloData['wins']) ?></td>
+                                <td class="text-center text-rose-600 font-bold"><?= number_format($soloData['losses']) ?></td>
+                                <td class="text-center font-bold">
+                                    <span class="px-2 py-0.5 rounded-full text-xs <?= $soloData['win_rate'] >= 50 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' ?>">
+                                        <?= $soloData['win_rate'] ?>%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="px-3 py-2.5 font-bold text-purple-700">👥 تیمی</td>
+                                <td class="text-center font-bold"><?= number_format($teamData['total']) ?></td>
+                                <td class="text-center text-emerald-600 font-bold"><?= number_format($teamData['wins']) ?></td>
+                                <td class="text-center text-rose-600 font-bold"><?= number_format($teamData['losses']) ?></td>
+                                <td class="text-center font-bold">
+                                    <span class="px-2 py-0.5 rounded-full text-xs <?= $teamData['win_rate'] >= 50 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700' ?>">
+                                        <?= $teamData['win_rate'] ?>%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr class="bg-indigo-50/50 border-t-2 border-indigo-200">
+                                <td class="px-3 py-2.5 font-black text-indigo-700">📊 مجموع</td>
+                                <td class="text-center font-black text-indigo-700"><?= number_format($totalRounds) ?></td>
+                                <td class="text-center font-black text-emerald-700"><?= number_format($soloData['wins'] + $teamData['wins']) ?></td>
+                                <td class="text-center font-black text-rose-700"><?= number_format($soloData['losses'] + $teamData['losses']) ?></td>
+                                <td class="text-center font-black text-indigo-700">
+                                    <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-200 text-indigo-800">
+                                        <?= $overallWinRate ?>%
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 🆕 توضیح تفاوت نرخ برد دورها -->
+                <div class="mt-5 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl flex-shrink-0">💡</span>
+                        <div>
+                            <h4 class="text-sm font-black text-blue-800">نرخ برد دورها در مقابل نرخ برد بازی‌ها</h4>
+                            <p class="text-xs text-blue-700 mt-1 leading-relaxed">
+                                <strong>نرخ برد دورها (Round Win Rate):</strong>
+                                درصد دورهایی که شما برنده شده‌اید از کل دورهای شرکت‌کرده.
+                                این معیار نشان‌دهنده‌ی عملکرد شما در هر دور است.
+                                <br>
+                                <strong>نرخ برد بازی‌ها (Game Win Rate):</strong>
+                                درصد بازی‌هایی که شما برنده شده‌اید از کل بازی‌های انجام‌شده.
+                                این معیار نشان‌دهنده‌ی عملکرد شما در سطح بازی است.
+                                <br>
+                                <span class="text-blue-600 font-bold mt-1 inline-block">
+                                    ⚡ نکته: این دو عدد متفاوت هستند، زیرا ممکن است در یک بازی چندین دور را ببرید اما بازی را ببازید، یا برعکس.
+                                </span>
+                            </p>
+                            <?php if (!empty($note)): ?>
+                                <p class="text-xs text-blue-500 mt-2 font-medium">📌 <?= htmlspecialchars($note) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ======= Charts Tab ======= -->
@@ -452,18 +591,16 @@ $conditionLabels = [
                         <canvas id="modeChart"></canvas>
                     </div>
                 </div>
-
                 <!-- نمودار کارت‌های پرکاربرد -->
                 <?php if (!empty($profile['card_stats'])): ?>
                     <div class="bg-white rounded-2xl p-4 border-2 border-gray-200 shadow-md lg:col-span-2">
                         <?php
-                        // مرتب‌سازی کارت‌ها بر اساس تعداد برد (نزولی) برای هماهنگی با نمودار
-                        $sortedCards = $profile['card_stats'];
-                        usort($sortedCards, function ($a, $b) {
+                        // مرتب‌سازی همه کارت‌ها بر اساس تعداد برد (نزولی) برای پالت رنگی
+                        $sortedAllCards = $allCardStats;
+                        usort($sortedAllCards, function ($a, $b) {
                             return ($b['usage_count'] ?? 0) - ($a['usage_count'] ?? 0);
                         });
-
-                        // پالت رنگ‌های ثابت (همانند نمودار)
+                        // پالت رنگ‌های ثابت با تعداد کل کارت‌ها
                         $colorPalette = [
                             '#ef4444',
                             '#f97316',
@@ -482,72 +619,75 @@ $conditionLabels = [
                             '#d946ef',
                             '#ec4899',
                             '#f43f5e',
+                            '#f472b6',
+                            '#fb7185',
+                            '#f87171',
                         ];
-                        $totalCards = count($sortedCards);
+                        $totalCards = count($sortedAllCards);
+                        $colorMap = [];
+                        foreach ($sortedAllCards as $index => $card) {
+                            $colorMap[$card['id']] = $colorPalette[$index % count($colorPalette)];
+                        }
+                        // داده‌های نمودار: ده کارت برتر
+                        $topTen = array_slice($sortedAllCards, 0, 10);
+                        $labels = array_map(fn($card) => ($card['emoji'] ?? '🃏') . ' ' . $card['name'], $topTen);
+                        $colors = array_map(fn($card) => $colorMap[$card['id']] ?? '#6b7280', $topTen);
                         ?>
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-base sm:text-lg font-black text-gray-800 flex items-center gap-2">
                                 <span class="text-2xl">🃏</span>
-                                کارت‌های برنده پرکاربرد
+                                ده کارت برنده پرکاربرد
                             </h3>
                             <span class="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
-                                <?= $totalCards ?> کارت برتر
+                                <?= count($topTen) ?> کارت برتر از <?= $totalCards ?>
                             </span>
                         </div>
                         <div class="h-72">
                             <canvas id="cardUsageChart"></canvas>
                         </div>
 
-                        <div class="!grid-cols-3 gap-3 grid lg:!grid-cols-6 mt-5 sm:!grid-cols-4">
-                            <?php foreach ($sortedCards as $index => $card):
-                                $color = $colorPalette[$index % count($colorPalette)];
-                                $emoji = $card['emoji'] ?? '🃏';
-                                $usage = $card['usage_count'] ?? 0;
-                                // رنگ‌های روشن‌تر برای پس‌زمینه
-                                $bgColor = $color . '20'; // 20% opacity
-                                $borderColor = $color . '60'; // 60% opacity
-                            ?>
-                                <div class="relative group">
-                                    <div class="rounded-xl p-3 border-2 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.03] text-center"
-                                        style="background-color: <?= $bgColor ?>; border-color: <?= $borderColor ?>;">
-                                        <div class="text-3xl sm:text-4xl mb-1 drop-shadow"><?= htmlspecialchars($emoji) ?></div>
-                                        <div class="font-bold text-gray-800 text-xs sm:text-sm truncate" title="<?= htmlspecialchars($card['name']) ?>">
-                                            <?= htmlspecialchars($card['name']) ?>
-                                        </div>
-                                        <div class="flex items-center justify-center gap-1 mt-1">
-                                            <span class="text-lg font-black" style="color: <?= $color ?>;">
-                                                🏆 <?= $usage ?>
-                                            </span>
-                                        </div>
-                                        <?php if (!empty($card['description'])): ?>
-                                            <div class="absolute invisible group-hover:visible z-20 bottom-full left-1/2 -translate-x-1/2 -mb-1 px-4 py-2.5 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-xl shadow-2xl max-w-36 w-max break-words whitespace-normal text-center leading-relaxed border border-white/10">
-                                                <?= htmlspecialchars($card['description']) ?>
-                                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900/95"></div>
+                        <!-- 🆕 کارت‌های گرافیکی زیر نمودار با رنگ‌های هماهنگ -->
+                        <div class="mt-5 border-t-2 border-gray-200 pt-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-sm sm:text-base font-black text-gray-800 flex items-center gap-2">
+                                    <span class="text-xl">📋</span>
+                                    همه کارت‌های برنده
+                                </h4>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+                                    <?= $totalCards ?> کارت
+                                </span>
+                            </div>
+                            <div class="!grid-cols-3 gap-3 grid lg:!grid-cols-6 sm:!grid-cols-4">
+                                <?php foreach ($sortedAllCards as $card):
+                                    $color = $colorMap[$card['id']] ?? '#6b7280';
+                                    $emoji = $card['emoji'] ?? '🃏';
+                                    $usage = $card['usage_count'] ?? 0;
+                                    $bgColor = $color . '20';
+                                    $borderColor = $color . '60';
+                                ?>
+                                    <div class="relative group">
+                                        <div class="rounded-xl p-3 border-2 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.03] text-center"
+                                            style="background-color: <?= $bgColor ?>; border-color: <?= $borderColor ?>;">
+                                            <div class="text-3xl sm:text-4xl mb-1 drop-shadow"><?= htmlspecialchars($emoji) ?></div>
+                                            <div class="font-bold text-gray-800 text-xs sm:text-sm truncate" title="<?= htmlspecialchars($card['name']) ?>">
+                                                <?= htmlspecialchars($card['name']) ?>
                                             </div>
-                                        <?php endif; ?>
-                                        <!-- نشان کمیابی (اختیاری) -->
-                                        <?php //if (!empty($card['rarity'])): 
-                                        ?>
-                                        <?php
-                                        // $rarityLabel = match ($card['rarity']) {
-                                        //     'common' => 'معمولی',
-                                        //     'rare' => 'کمیاب',
-                                        //     'legendary' => 'افسانه‌ای',
-                                        //     default => $card['rarity']
-                                        // };
-                                        ?>
-                                        <!-- <div class="absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-white/80 shadow-sm"
-                                                    style="color: <?= $color ?>;">
-                                                    <?php //echo mb_substr($rarityLabel, 0, 2) 
-                                                    ?>
-                                                </div> -->
-                                        <?php //endif; 
-                                        ?>
+                                            <div class="flex items-center justify-center gap-1 mt-1">
+                                                <span class="text-lg font-black" style="color: <?= $color ?>;">
+                                                    🏆 <?= $usage ?>
+                                                </span>
+                                            </div>
+                                            <?php if (!empty($card['description'])): ?>
+                                                <div class="absolute invisible group-hover:visible z-20 bottom-full left-1/2 -translate-x-1/2 -mb-1 px-4 py-2.5 bg-gray-900/95 backdrop-blur-sm text-white text-xs rounded-xl shadow-2xl max-w-36 w-max break-words whitespace-normal text-center leading-relaxed border border-white/10">
+                                                    <?= htmlspecialchars($card['description']) ?>
+                                                    <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900/95"></div>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
-
                     </div>
                 <?php else: ?>
                     <div class="bg-gray-50 rounded-2xl p-8 border-2 border-gray-200 lg:col-span-2 text-center shadow-md">
@@ -714,7 +854,6 @@ $conditionLabels = [
 
         <!-- ======= Titles Tab ======= -->
         <?php
-        $userId = $profile['user_id'] ?? $profile['id'];
         $allTitles = \Core\Database::getInstance()->fetchAll(
             "SELECT 
                     t.id, t.name, t.icon, t.description, t.bonus_points, t.condition_type, t.condition_value,
@@ -1074,7 +1213,6 @@ $conditionLabels = [
             }
         }
 
-        // نمودار کارت‌های پرکاربرد
         // نمودار کارت‌های پرکاربرد (با برچسب‌های پایین و نمایش تعداد)
         if (cardStats && cardStats.length > 0) {
             const cardCtx = document.getElementById('cardUsageChart');
@@ -1135,15 +1273,6 @@ $conditionLabels = [
                                     label: function(context) {
                                         return `🏆 ${context.parsed.y} برد`;
                                     },
-                                    // afterLabel: function(context) {
-                                    //     const card = sortedStats[context.dataIndex];
-                                    //     const rarityLabels = {
-                                    //         'common': 'معمولی',
-                                    //         'rare': 'کمیاب',
-                                    //         'legendary': 'افسانه‌ای'
-                                    //     };
-                                    //     return `✨ ${rarityLabels[card.rarity] || card.rarity}`;
-                                    // }
                                 }
                             }
                         },
@@ -1205,6 +1334,95 @@ $conditionLabels = [
                     }
                 });
             }
+        }
+
+        // نمودار دورها (برد/باخت در انفرادی و تیمی)
+        const roundStatsCtx = document.getElementById('roundStatsChart');
+        if (roundStatsCtx) {
+            const roundStats = <?= json_encode($roundStats ?? ['solo' => ['wins' => 0, 'losses' => 0], 'team' => ['wins' => 0, 'losses' => 0]]) ?>;
+            const soloWins = roundStats.solo?.wins || 0;
+            const soloLosses = roundStats.solo?.losses || 0;
+            const teamWins = roundStats.team?.wins || 0;
+            const teamLosses = roundStats.team?.losses || 0;
+
+            new Chart(roundStatsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['انفرادی', 'تیمی'],
+                    datasets: [{
+                        label: 'برد',
+                        data: [soloWins, teamWins],
+                        backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(16, 185, 129, 0.7)'],
+                        borderColor: ['#10b981', '#10b981'],
+                        borderWidth: 2,
+                        borderRadius: 4,
+                    }, {
+                        label: 'باخت',
+                        data: [soloLosses, teamLosses],
+                        backgroundColor: ['rgba(239, 68, 68, 0.7)', 'rgba(239, 68, 68, 0.7)'],
+                        borderColor: ['#ef4444', '#ef4444'],
+                        borderWidth: 2,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.raw || 0;
+                                    let total = context.dataIndex === 0 ? (soloWins + soloLosses) : (teamWins + teamLosses);
+                                    let percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 800,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
         }
     });
 </script>

@@ -14,13 +14,29 @@ class RecalculateUserService
     }
 
     /**
-     * باز محاسبه کامل آمار، XP، مدال‌ها و القاب یک کاربر از صفر (بر اساس بازی‌های معتبر باقی‌مانده)
+     * باز محاسبه کامل آمار، XP، مدال‌ها، القاب و زنجیره پیروزی یک کاربر از صفر
+     * 
+     * این متد برای موارد زیر استفاده می‌شود:
+     * - پس از حذف بازی‌های تقلبی یا مشکوک
+     * - پس از تغییر دستی داده‌ها توسط مدیر
+     * - برای ترمیم آمار کاربرانی که داده‌هایشان ناسازگار شده است
+     * 
+     * مراحل:
+     * 1. محاسبه آمار پایه از بازی‌های باقی‌مانده (تعداد بازی، برد، امتیاز)
+     * 2. محاسبه XP و سطح جدید
+     * 3. به‌روزرسانی leaderboard_cache
+     * 4. بازمحاسبه نشان‌ها (Achievements)
+     * 5. بازمحاسبه القاب (Titles) و انتخاب بهترین لقب فعال
+     * 6. 🆕 بازمحاسبه زنجیره پیروزی (Streak) از تاریخچه بازی‌ها
+     * 
+     * @param int $userId شناسه کاربر
+     * @throws \Exception در صورت بروز خطا (تراکنش Rollback می‌شود)
      */
     public function recalculateAll(int $userId): void
     {
         $this->db->beginTransaction();
         try {
-            // ۱. 🆕 محاسبه آمار پایه با پشتیبانی کامل از تیمی
+            // ۱. محاسبه آمار پایه با پشتیبانی کامل از تیمی
             $stats = $this->db->fetchOne(
                 "SELECT 
                 COUNT(DISTINCT g.id) as total_games,
@@ -73,7 +89,7 @@ class RecalculateUserService
                 'win_rate' => $totalGames > 0 ? ($totalWins / $totalGames) * 100 : 0,
             ], 'user_id = ?', [$userId]);
 
-            // ۴. 🆕 باز محاسبه مدال‌ها (Achievements)
+            // ۴. باز محاسبه مدال‌ها (Achievements)
             $achievements = $this->db->fetchAll("SELECT * FROM achievements WHERE is_active = 1");
             foreach ($achievements as $ach) {
                 $currentValue = $this->getCurrentValue($ach['condition_type'], $userId);
@@ -90,69 +106,45 @@ class RecalculateUserService
                     );
                 }
             }
-            // ۵. باز محاسبه القاب (Titles) - نسخه بهبود یافته
+
+            // ۵. باز محاسبه القاب (Titles)
             $titles = $this->db->fetchAll("SELECT * FROM titles WHERE is_active = 1");
             $validTitles = [];
 
             foreach ($titles as $title) {
                 $currentValue = $this->getCurrentValue($title['condition_type'], $userId);
-
-                // 🆕 لاگ برای debug
-                error_log("Title check: {$title['name']} - current: {$currentValue}, required: {$title['condition_value']}");
-
                 if ($currentValue >= $title['condition_value']) {
                     $validTitles[] = $title;
-
-                    // اطمینان از وجود در user_titles
                     $this->db->query(
                         "INSERT INTO user_titles (user_id, title_id, is_active, unlocked_at)
-             VALUES (?, ?, 0, NOW()) 
-             ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())",
+                         VALUES (?, ?, 0, NOW()) 
+                         ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())",
                         [$userId, $title['id']]
                     );
                 } else {
-                    // حذف لقب‌های نامعتبر
                     $this->db->query("DELETE FROM user_titles WHERE user_id = ? AND title_id = ?", [$userId, $title['id']]);
                 }
             }
 
-            // 🆕 فعال‌سازی بهترین لقب معتبر - نسخه بهبود یافته
+            // انتخاب بهترین لقب معتبر
             if (!empty($validTitles)) {
-                // 🎯 Sort: اول bonus_points (نزولی)، سپس priority (نزولی)، سپس ID (نزولی برای ثبات)
                 usort($validTitles, function ($a, $b) {
-                    if ($a['bonus_points'] != $b['bonus_points']) {
-                        return $b['bonus_points'] <=> $a['bonus_points'];
-                    }
-                    if ($a['priority'] != $b['priority']) {
-                        return $b['priority'] <=> $a['priority'];
-                    }
-                    return $b['id'] <=> $a['id']; // 🆕 Tie-breaker
+                    if ($a['bonus_points'] != $b['bonus_points']) return $b['bonus_points'] <=> $a['bonus_points'];
+                    if ($a['priority'] != $b['priority']) return $b['priority'] <=> $a['priority'];
+                    return $b['id'] <=> $a['id'];
                 });
-
                 $bestTitle = $validTitles[0];
-
-                // 🆕 لاگ برای debug
-                error_log("Best title selected: {$bestTitle['name']} with bonus: {$bestTitle['bonus_points']}");
-
-                // 🆕 غیرفعال کردن همه لقب‌های دیگر
-                $this->db->query(
-                    "UPDATE user_titles SET is_active = 0 WHERE user_id = ? AND title_id != ?",
-                    [$userId, $bestTitle['id']]
-                );
-
-                // فعال کردن بهترین
-                $this->db->query(
-                    "UPDATE user_titles SET is_active = 1, unlocked_at = COALESCE(unlocked_at, NOW()) 
-         WHERE user_id = ? AND title_id = ?",
-                    [$userId, $bestTitle['id']]
-                );
-
-                // به‌روزرسانی users.current_title_id
+                $this->db->query("UPDATE user_titles SET is_active = 0 WHERE user_id = ? AND title_id != ?", [$userId, $bestTitle['id']]);
+                $this->db->query("UPDATE user_titles SET is_active = 1, unlocked_at = COALESCE(unlocked_at, NOW()) WHERE user_id = ? AND title_id = ?", [$userId, $bestTitle['id']]);
                 $this->db->update('users', ['current_title_id' => $bestTitle['id']], 'id = ?', [$userId]);
             } else {
                 $this->db->query("UPDATE user_titles SET is_active = 0 WHERE user_id = ?", [$userId]);
                 $this->db->update('users', ['current_title_id' => null], 'id = ?', [$userId]);
             }
+
+            // 🆕 ۶. باز محاسبه زنجیره پیروزی (Streak)
+            $streakService = new \Application\Services\StreakService();
+            $streakService->recalculateStreak($userId);
 
             $this->db->commit();
         } catch (\Exception $e) {

@@ -12,6 +12,7 @@ class GamificationService
     private StreakService $streakService;
     private NotificationService $notificationService;
 
+
     public function __construct()
     {
         $this->repo = new GamificationRepository();

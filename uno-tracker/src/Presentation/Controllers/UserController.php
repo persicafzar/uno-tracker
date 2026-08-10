@@ -81,6 +81,7 @@ class UserController
 
         // 🆕 گرفتن آمار برای نمودارها
         $statsService = new UserStatsService();
+        $roundStats = $statsService->getRoundStats($userId);
         $profile['stats_by_status'] = $statsService->getStatsByStatus($userId);
         $profile['stats_by_mode'] = $statsService->getStatsByMode($userId);
         $profile['daily_stats'] = $statsService->getDailyStats($userId, 30);
@@ -139,6 +140,7 @@ class UserController
             'page' => $page,
             'hasMore' => $hasMore,
             'achievements' => $achievements,
+            'roundStats' => $roundStats,
         ], 'main');
 
         $this->response->html($html);

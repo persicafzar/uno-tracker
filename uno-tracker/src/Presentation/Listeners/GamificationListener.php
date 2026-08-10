@@ -23,10 +23,12 @@ class GamificationListener
     /**
      * رسیدگی به رویداد پایان بازی
      */
+
     public function handleGameFinished(array $data): void
     {
         $gameId = $data['game_id'] ?? null;
         $winnerId = $data['winner_id'] ?? null;
+        $winnerTeamId = $data['winner_team_id'] ?? null; // 🆕
         $totalRounds = $data['total_rounds'] ?? 0;
 
         if (!$gameId) {
@@ -38,9 +40,9 @@ class GamificationListener
 
         // گرفتن همه شرکت‌کنندگان بازی
         $participants = $this->db->fetchAll(
-            "SELECT gp.id, gp.user_id, gp.wins_count, gp.total_score
-             FROM game_participants gp
-             WHERE gp.game_id = ? AND gp.user_id IS NOT NULL",
+            "SELECT gp.id, gp.user_id, gp.wins_count, gp.total_score, gp.team_id, gp.is_winner
+            FROM game_participants gp
+            WHERE gp.game_id = ? AND gp.user_id IS NOT NULL",
             [$gameId]
         );
 
@@ -59,7 +61,7 @@ class GamificationListener
         // پردازش هر شرکت‌کننده
         foreach ($participants as $participant) {
             $userId = (int) $participant['user_id'];
-            $isWinner = ($participant['id'] == $winnerId);
+            $isWinner = (bool) $participant['is_winner']; // 🆕 مستقیماً از دیتابیس
 
             log_message("🎯 Processing user {$userId} - Winner: " . ($isWinner ? 'Yes' : 'No'));
 
