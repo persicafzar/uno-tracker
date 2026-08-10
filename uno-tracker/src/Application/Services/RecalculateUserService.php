@@ -36,7 +36,7 @@ class RecalculateUserService
     {
         $this->db->beginTransaction();
         try {
-            // ۱. محاسبه آمار پایه با پشتیبانی کامل از تیمی
+            // ۱. محاسبه آمار پایه
             $stats = $this->db->fetchOne(
                 "SELECT 
                 COUNT(DISTINCT g.id) as total_games,
@@ -81,13 +81,9 @@ class RecalculateUserService
                 'xp_to_next_level' => $xpToNext,
             ], 'user_id = ?', [$userId]);
 
-            // ۳. به‌روزرسانی لیدربورد
-            $this->db->update('leaderboard_cache', [
-                'total_games' => $totalGames,
-                'total_wins' => $totalWins,
-                'total_points' => $totalPoints,
-                'win_rate' => $totalGames > 0 ? ($totalWins / $totalGames) * 100 : 0,
-            ], 'user_id = ?', [$userId]);
+            // 🆕 ۳. باز محاسبه زنجیره پیروزی (Streak) – قبل از القاب و کش
+            $streakService = new \Application\Services\StreakService();
+            $streakService->recalculateStreak($userId);
 
             // ۴. باز محاسبه مدال‌ها (Achievements)
             $achievements = $this->db->fetchAll("SELECT * FROM achievements WHERE is_active = 1");
@@ -107,7 +103,7 @@ class RecalculateUserService
                 }
             }
 
-            // ۵. باز محاسبه القاب (Titles)
+            // ۵. باز محاسبه القاب (Titles) – بعد از به‌روز شدن user_streaks
             $titles = $this->db->fetchAll("SELECT * FROM titles WHERE is_active = 1");
             $validTitles = [];
 
@@ -117,8 +113,8 @@ class RecalculateUserService
                     $validTitles[] = $title;
                     $this->db->query(
                         "INSERT INTO user_titles (user_id, title_id, is_active, unlocked_at)
-                         VALUES (?, ?, 0, NOW()) 
-                         ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())",
+                     VALUES (?, ?, 0, NOW()) 
+                     ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())",
                         [$userId, $title['id']]
                     );
                 } else {
@@ -142,14 +138,42 @@ class RecalculateUserService
                 $this->db->update('users', ['current_title_id' => null], 'id = ?', [$userId]);
             }
 
-            // 🆕 ۶. باز محاسبه زنجیره پیروزی (Streak)
-            $streakService = new \Application\Services\StreakService();
-            $streakService->recalculateStreak($userId);
+            // ۶. 🆕 به‌روزرسانی leaderboard_cache در آخرین مرحله
+            $this->updateLeaderboardCache($userId);
 
             $this->db->commit();
         } catch (\Exception $e) {
             $this->db->rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * 🆕 متد کمکی برای به‌روزرسانی leaderboard_cache با داده‌های به‌روز
+     */
+    private function updateLeaderboardCache(int $userId): void
+    {
+        $stats = $this->getUserStats($userId);
+        $detailedStats = $this->getDetailedStats($userId);
+
+        $data = [
+            'total_games' => $stats['total_games'],
+            'total_wins' => $stats['total_wins'],
+            'total_losses' => $stats['total_losses'],
+            'total_points' => $stats['total_points'],
+            'win_rate' => $stats['win_rate'],
+            'points_per_game' => $stats['points_per_game'],
+            'current_streak' => $detailedStats['current_streak'], // از user_streaks به‌روز
+            'best_streak' => $detailedStats['best_streak'],
+            'last_updated' => date('Y-m-d H:i:s'),
+        ];
+
+        $existing = $this->db->fetchOne("SELECT user_id FROM leaderboard_cache WHERE user_id = ?", [$userId]);
+        if ($existing) {
+            $this->db->update('leaderboard_cache', $data, 'user_id = ?', [$userId]);
+        } else {
+            $data['user_id'] = $userId;
+            $this->db->insert('leaderboard_cache', $data);
         }
     }
 

@@ -22,14 +22,14 @@ class GamificationListener
 
     /**
      * رسیدگی به رویداد پایان بازی
+     * - پردازش گیمیفیکیشن (XP، استریک، مدال‌ها، القاب)
+     * - به‌روزرسانی leaderboard_cache (با refreshLeaderboardCache)
      */
-
     public function handleGameFinished(array $data): void
     {
         $gameId = $data['game_id'] ?? null;
         $winnerId = $data['winner_id'] ?? null;
-        $winnerTeamId = $data['winner_team_id'] ?? null; // 🆕
-        $totalRounds = $data['total_rounds'] ?? 0;
+        $winnerTeamId = $data['winner_team_id'] ?? null;
 
         if (!$gameId) {
             log_message("❌ GamificationListener: game_id not provided");
@@ -38,11 +38,11 @@ class GamificationListener
 
         log_message("🎮 GamificationListener: Processing game {$gameId}");
 
-        // گرفتن همه شرکت‌کنندگان بازی
+        // دریافت شرکت‌کنندگان با is_winner
         $participants = $this->db->fetchAll(
             "SELECT gp.id, gp.user_id, gp.wins_count, gp.total_score, gp.team_id, gp.is_winner
-            FROM game_participants gp
-            WHERE gp.game_id = ? AND gp.user_id IS NOT NULL",
+         FROM game_participants gp
+         WHERE gp.game_id = ? AND gp.user_id IS NOT NULL",
             [$gameId]
         );
 
@@ -51,21 +51,22 @@ class GamificationListener
             return;
         }
 
-        // بررسی نوع بازی (تیمی یا انفرادی)
         $game = $this->db->fetchOne(
             "SELECT game_mode FROM games WHERE id = ?",
             [$gameId]
         );
         $isTeamGame = ($game['game_mode'] ?? '') === 'friendly';
 
-        // پردازش هر شرکت‌کننده
+        $statsService = new \Application\Services\UserStatsService();
+
         foreach ($participants as $participant) {
             $userId = (int) $participant['user_id'];
-            $isWinner = (bool) $participant['is_winner']; // 🆕 مستقیماً از دیتابیس
+            $isWinner = (bool) $participant['is_winner'];
 
             log_message("🎯 Processing user {$userId} - Winner: " . ($isWinner ? 'Yes' : 'No'));
 
             try {
+                // پردازش گیمیفیکیشن (XP، استریک، مدال‌ها، القاب)
                 $result = $this->gamificationService->processGameEnd(
                     $userId,
                     $isWinner,
@@ -74,6 +75,9 @@ class GamificationListener
 
                 log_message("✅ User {$userId} - XP: {$result['xp_gained']}, Achievements: " .
                     count($result['achievements_unlocked']));
+
+                // 🆕 به‌روزرسانی leaderboard_cache بعد از به‌روز شدن استریک
+                $statsService->refreshLeaderboardCache($userId);
             } catch (\Throwable $e) {
                 log_message("❌ Error processing user {$userId}: " . $e->getMessage());
             }

@@ -733,14 +733,14 @@ class GameService
         return ['success' => true, 'message' => 'بازی لغو شد'];
     }
 
+
     /**
-     * 🏆 پایان بازی - نسخه کامل با پشتیبانی از حالت تیمی
+     * 🏆 پایان بازی - نسخه اصلاح‌شده (بدون به‌روزرسانی مستقیم leaderboard_cache)
      * 
      * اصلاحات:
-     * - ذخیره winner_team_id در حالت تیمی
-     * - علامت‌گذاری همه اعضای تیم برنده
-     * - اعطای XP به همه اعضای تیم برنده (نه فقط یک نفر)
-     * - Broadcast صحیح با لیست اعضای برنده
+     * - حذف فراخوانی‌های refreshLeaderboardCache (انتقال به GamificationListener)
+     * - انتقال dispatch('game_finished') به قبل از broadcast
+     * - حفظ محاسبه XP و القاب در همین متد
      */
     public function finishGame(int $gameId, int $refereeId): array
     {
@@ -761,12 +761,9 @@ class GameService
 
                 $game->participants = $this->participantRepo->findByGameId($gameId);
 
-                // 🆕 بارگذاری تیم‌ها در حالت تیمی
+                // بارگذاری تیم‌ها در حالت تیمی
                 if ($game->isTeamMode()) {
-                    $teams = $this->db->fetchAll(
-                        "SELECT * FROM teams WHERE game_id = ?",
-                        [$gameId]
-                    );
+                    $teams = $this->db->fetchAll("SELECT * FROM teams WHERE game_id = ?", [$gameId]);
                     foreach ($teams as $teamData) {
                         $team = Team::fromArray($teamData);
                         foreach ($game->participants as $participant) {
@@ -782,19 +779,16 @@ class GameService
                     return ['success' => false, 'error' => 'بازی هنوز برنده‌ای ندارد'];
                 }
 
-                // 🆕 تشخیص حالت تیمی یا انفرادی
                 $isTeamMode = $game->isTeamMode();
                 $winningTeam = $isTeamMode ? $game->getWinningTeam() : null;
                 $winnerTeamId = $winningTeam ? $winningTeam->id : null;
-
-                // در حالت Solo، برنده فردی را بگیر
                 $soloWinner = !$isTeamMode ? $game->getWinner() : null;
 
                 if (!$winningTeam && !$soloWinner) {
                     return ['success' => false, 'error' => 'برنده‌ای یافت نشد'];
                 }
 
-                // 🆕 به‌روزرسانی بازی با اطلاعات کامل برنده
+                // به‌روزرسانی بازی
                 $db->update('games', [
                     'status' => Game::STATUS_FINISHED,
                     'winner_participant_id' => $isTeamMode ? null : $soloWinner->id,
@@ -802,17 +796,14 @@ class GameService
                     'finished_at' => date('Y-m-d H:i:s'),
                 ], 'id = ?', [$gameId]);
 
-                // 🆕 علامت‌گذاری برندگان
+                // علامت‌گذاری برندگان
                 if ($isTeamMode && $winnerTeamId) {
-                    // در حالت تیمی: همه اعضای تیم برنده
                     $db->execute(
                         "UPDATE game_participants SET is_winner = 1 WHERE game_id = ? AND team_id = ?",
                         [$gameId, $winnerTeamId]
                     );
                     $winningMembers = $game->getWinningTeamMembers();
-                    log_message("✅ Team victory: " . count($winningMembers) . " members of team {$winnerTeamId} marked as winners");
                 } else {
-                    // در حالت انفرادی: فقط یک نفر
                     $db->execute(
                         "UPDATE game_participants SET is_winner = 1 WHERE id = ?",
                         [$soloWinner->id]
@@ -820,10 +811,9 @@ class GameService
                     $winningMembers = [$soloWinner];
                 }
 
-                // 🆕 محاسبه و به‌روزرسانی XP برای همه بازیکنان
+                // محاسبه XP و اعطای القاب (بدون به‌روزرسانی کش)
                 $scoringService = new ScoringService();
                 $gamificationService = new \Application\Services\GamificationService();
-                $statsService = new \Application\Services\UserStatsService();
 
                 foreach ($game->participants as $participant) {
                     if (!$participant->user_id) continue;
@@ -832,50 +822,28 @@ class GameService
 
                     if ($isGameWinner) {
                         $xp = $scoringService->calculateWinnerXP((float) $participant->total_score);
-                        log_message("🏆 User {$participant->user_id} earned {$xp} XP as WINNER");
                     } else {
-                        $xp = $scoringService->calculatePlayerXP(
-                            (float) $participant->total_score,
-                            false,
-                            false
-                        );
-                        log_message("📊 User {$participant->user_id} earned {$xp} XP as participant");
+                        $xp = $scoringService->calculatePlayerXP((float) $participant->total_score, false, false);
                     }
 
                     $scoringService->updateUserXP($participant->user_id, $xp);
 
-                    // 🆕 بررسی و اعطای القاب بعد از پایان بازی (برای هر بازیکن)
+                    // اعطای القاب (در صورت احراز شرایط)
                     $titleResult = $gamificationService->checkAndUpdateTitles($participant->user_id);
-
-                    // 🆕 لاگ القاب جدید
                     if (!empty($titleResult['new_titles'])) {
                         foreach ($titleResult['new_titles'] as $newTitle) {
                             log_message("🏆 NEW TITLE: User {$participant->user_id} unlocked '{$newTitle['name']}'");
                         }
                     }
-
-                    // 🆕 به‌روزرسانی کش leaderboard
-                    $statsService->refreshLeaderboardCache($participant->user_id);
                 }
 
-                // 🆕 به‌روزرسانی کش leaderboard برای همه شرکت‌کنندگان
-                $statsService = new \Application\Services\UserStatsService();
-                foreach ($game->participants as $participant) {
-                    if ($participant->user_id) {
-                        $statsService->refreshLeaderboardCache($participant->user_id);
-                    }
-                }
-
-                // 🆕 ساخت نام برنده برای نمایش
+                // ساخت اطلاعات برنده
                 $winnerName = '';
                 $winnerUserId = null;
                 $winnerMembersData = [];
 
                 if ($isTeamMode && $winningTeam) {
                     $winnerName = 'تیم ' . $winningTeam->name;
-                    $winnerUserId = null;
-
-                    // ساخت لیست اعضای برنده برای broadcast
                     foreach ($winningMembers as $member) {
                         $winnerMembersData[] = [
                             'id' => $member->user_id ?? $member->id,
@@ -890,7 +858,7 @@ class GameService
                     $winnerMembersData = null;
                 }
 
-                // 🆕 Dispatch رویداد با اطلاعات کامل
+                // 🆕 ارسال رویداد پایان بازی (این باعث می‌شود GamificationListener اجرا شود و استریک و کش به‌روز گردد)
                 $this->events->dispatch('game_finished', [
                     'game_id' => $gameId,
                     'winner_id' => $winnerUserId,
@@ -900,7 +868,7 @@ class GameService
                     'total_rounds' => $game->total_rounds_played,
                 ]);
 
-                // 🆕 آماده‌سازی داده‌های broadcast
+                // داده‌های broadcast
                 $broadcastData = [
                     'game_id' => $gameId,
                     'status' => Game::STATUS_FINISHED,
@@ -926,7 +894,7 @@ class GameService
                 ];
             });
 
-            // 🆕 Broadcast خارج از transaction
+            // broadcast خارج از تراکنش
             if ($result['success'] && $broadcastData) {
                 try {
                     $this->broadcastGameFinished($gameId, $broadcastData);

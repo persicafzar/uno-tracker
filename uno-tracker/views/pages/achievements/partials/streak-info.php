@@ -5,12 +5,13 @@ $isActive = $streakInfo['is_active'];
 $isBroken = $streakInfo['is_broken'];
 $lastWinAt = $streakInfo['last_win_at'];
 $hoursSinceLastWin = $streakInfo['hours_since_last_win'];
+$resetHours = $streakInfo['reset_hours'] ?? 24; // 🆕
 ?>
 
 <div class="relative overflow-hidden">
     <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
     <div class="absolute bottom-0 left-0 w-24 h-24 bg-red-500/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-    
+
     <div class="relative z-10">
         <h2 class="text-lg sm:text-xl font-black text-gray-800 mb-4 flex items-center gap-2.5 tracking-tight">
             <span class="text-2xl sm:text-3xl">🔥</span>
@@ -60,10 +61,10 @@ $hoursSinceLastWin = $streakInfo['hours_since_last_win'];
                             <?= $hoursSinceLastWin !== null ? round($hoursSinceLastWin, 1) : 0 ?> ساعت
                         </div>
                         <div class="text-sm text-gray-600 font-bold mt-1">از آخرین برد</div>
-                        <div class="text-xs font-black mt-2 <?= $hoursSinceLastWin < 12 ? 'text-green-600' : ($hoursSinceLastWin < 24 ? 'text-orange-600' : 'text-red-600') ?>">
-                            <?php if ($hoursSinceLastWin < 12): ?>
+                        <div class="text-xs font-black mt-2 <?= $hoursSinceLastWin < ($resetHours * 0.5) ? 'text-green-600' : ($hoursSinceLastWin < $resetHours ? 'text-orange-600' : 'text-red-600') ?>">
+                            <?php if ($hoursSinceLastWin < $resetHours * 0.5): ?>
                                 ✅ هنوز فرصت دارید
-                            <?php elseif ($hoursSinceLastWin < 24): ?>
+                            <?php elseif ($hoursSinceLastWin < $resetHours): ?>
                                 ⚠️ زمان رو به اتمام است
                             <?php else: ?>
                                 ❌ زنجیره شکسته شد

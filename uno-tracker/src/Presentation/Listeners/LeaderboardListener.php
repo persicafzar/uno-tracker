@@ -41,23 +41,18 @@ class LeaderboardListener
         }
     }
 
+
     /**
-     * نهایی‌سازی بازی پس از پایان
+     * نهایی‌سازی بازی - فقط لاگ‌گیری (به‌روزرسانی کش به GamificationListener سپرده شده)
      */
     public function finalizeGame(array $data): void
     {
         $gameId = $data['game_id'] ?? null;
-        $winnerId = $data['winner_id'] ?? null;
         $winnerName = $data['winner_name'] ?? 'ناشناس';
         $totalRounds = $data['total_rounds'] ?? 0;
 
         log_message("🏆 LeaderboardListener: بازی {$gameId} پایان یافت. برنده: {$winnerName} ({$totalRounds} دور)");
-
-        if ($winnerId) {
-            $this->updateWinnerStats($winnerId);
-        }
-
-        $this->updateLosersStats($gameId, $winnerId);
+        // به‌روزرسانی leaderboard_cache در اینجا انجام نمی‌شود (به GamificationListener سپرده شده)
     }
 
     /**
