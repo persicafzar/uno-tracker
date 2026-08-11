@@ -11,13 +11,13 @@ $currentPath = '/users';
 <div class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
     <div class="space-y-6" x-data="usersListManager()">
-        
+
         <!-- ======= Header ======= -->
         <div class="relative bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 rounded-2xl p-5 sm:p-7 text-white shadow-md overflow-hidden">
             <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
             <div class="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
             <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-            
+
             <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-2xl sm:text-3xl font-black drop-shadow-lg tracking-tight flex items-center gap-2.5">
@@ -101,6 +101,7 @@ $currentPath = '/users';
                     <table class="w-full min-w-[900px]">
                         <thead class="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                             <tr>
+                                <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">ID</th>
                                 <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">بازیکن</th>
                                 <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">لقب</th>
                                 <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">سطح</th>
@@ -112,11 +113,12 @@ $currentPath = '/users';
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <?php foreach ($users as $user): ?>
-                                <tr class="hover:bg-indigo-50/50 transition-all duration-200 group cursor-pointer" onclick="window.location='/users/<?= $user['id'] ?>'">
-                                    
+                                <tr class="hover:bg-indigo-50/50 transition-all duration-200 group ">
+                                    <td class="px-4 py-3.5 text-sm text-gray-600 font-bold">#<?= $user['id'] ?></td>
                                     <!-- بازیکن -->
                                     <td class="px-4 py-3.5">
-                                        <div class="flex items-center gap-3 min-w-0">
+                                        <a href="/users/<?= $user['id'] ?>"
+                                            class="flex items-center gap-3 min-w-0 group-hover:text-indigo-600 transition-colors duration-200 no-underline hover:no-underline">
                                             <?php if (!empty($user['avatar_path'])): ?>
                                                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 group-hover:border-indigo-400 transition-all duration-300">
                                                     <img src="/storage/uploads/avatars/<?= htmlspecialchars($user['avatar_path']) ?>"
@@ -129,19 +131,19 @@ $currentPath = '/users';
                                                 </div>
                                             <?php endif; ?>
                                             <div class="min-w-0">
-                                                <div class="font-bold text-gray-800 text-sm sm:text-base truncate whitespace-nowrap">
+                                                <div class="font-bold text-gray-800 text-sm sm:text-base truncate whitespace-nowrap group-hover:text-indigo-700">
                                                     <?= htmlspecialchars($user['nickname'] ?? 'ناشناس') ?>
                                                     <?php if ($user['id'] === $currentUserId): ?>
-                                                        <span class="text-xs text-indigo-600 font-black bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200 whitespace-nowrap inline-block">(شما)</span>
+                                                        <span class="text-xs text-indigo-600 font-black bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-200 whitespace-nowrap inline-block group-hover:bg-indigo-200">(شما)</span>
                                                     <?php endif; ?>
                                                 </div>
                                                 <?php if (!empty($user['real_name'])): ?>
-                                                    <div class="text-xs text-gray-500 font-medium truncate whitespace-nowrap">
+                                                    <div class="text-xs text-gray-500 font-medium truncate whitespace-nowrap group-hover:text-gray-700">
                                                         <?= htmlspecialchars($user['real_name']) ?>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
-                                        </div>
+                                        </a>
                                     </td>
 
                                     <!-- لقب -->

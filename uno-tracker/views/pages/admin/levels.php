@@ -87,6 +87,7 @@ $levels = $levels ?? [];
                 <table class="w-full min-w-[900px]">
                     <thead class="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                         <tr>
+                            <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">ID</th>
                             <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">سطح</th>
                             <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">عنوان</th>
                             <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">آیکون</th>
@@ -99,6 +100,7 @@ $levels = $levels ?? [];
                     <tbody class="divide-y divide-gray-100">
                         <?php foreach ($levels as $level): ?>
                             <tr class="hover:bg-indigo-50/50 transition-all duration-200 group">
+                                <td class="px-4 py-3.5 text-sm font-bold text-gray-600 whitespace-nowrap">#<?= $level['id'] ?></td>
                                 <td class="px-4 py-3.5 whitespace-nowrap">
                                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-lg shadow-sm"
                                         style="background-color: <?= htmlspecialchars($level['color']) ?>">
@@ -140,11 +142,11 @@ $levels = $levels ?? [];
                                         </button>
                                         <button type="button"
                                             @click='deleteLevel(<?= json_encode([
-                                                                        "id" => $level["id"],
-                                                                        "level" => $level["level"],
-                                                                        "title" => $level["title"] ?? "",
-                                                                        "users_count" => $level["users_count"] ?? 0
-                                                                    ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) ?>)'
+                                                                    "id" => $level["id"],
+                                                                    "level" => $level["level"],
+                                                                    "title" => $level["title"] ?? "",
+                                                                    "users_count" => $level["users_count"] ?? 0
+                                                                ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG) ?>)'
                                             class="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition <?= ($level['users_count'] ?? 0) > 0 ? 'opacity-50 cursor-not-allowed' : '' ?>"
                                             title="<?= ($level['users_count'] ?? 0) > 0 ? 'نمی‌توان حذف کرد - ' . ($level['users_count'] ?? 0) . ' بازیکن در این سطح' : 'حذف' ?>">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,23 +196,23 @@ $levels = $levels ?? [];
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">شماره سطح <span class="text-red-500">*</span></label>
                         <input type="number" name="level" x-model="formData.level" min="1" required
-                               :disabled="isEditing"
-                               placeholder="مثال: 1"
-                               class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                            :disabled="isEditing"
+                            placeholder="مثال: 1"
+                            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed">
                         <p class="text-xs text-gray-500 font-medium mt-1">شماره سطح باید حداقل ۱ باشد</p>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">عنوان سطح <span class="text-red-500">*</span></label>
                         <input type="text" name="title" x-model="formData.title" required
-                               placeholder="مثال: تازه‌کار"
-                               class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
+                            placeholder="مثال: تازه‌کار"
+                            class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">آیکون <span class="text-red-500">*</span></label>
                         <div class="flex items-center gap-2">
                             <input type="text" name="icon" x-model="formData.icon" required
-                                   placeholder="مثال: ⭐"
-                                   class="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
+                                placeholder="مثال: ⭐"
+                                class="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
                             <span class="text-3xl" x-text="formData.icon || '⭐'"></span>
                         </div>
                     </div>
@@ -218,24 +220,24 @@ $levels = $levels ?? [];
                         <label class="block text-sm font-bold text-gray-700 mb-2">رنگ <span class="text-red-500">*</span></label>
                         <div class="flex items-center gap-2">
                             <input type="color" name="color" x-model="formData.color"
-                                   class="w-14 h-12 rounded-xl border-2 border-gray-200 cursor-pointer">
+                                class="w-14 h-12 rounded-xl border-2 border-gray-200 cursor-pointer">
                             <input type="text" x-model="formData.color"
-                                   placeholder="#6366f1"
-                                   class="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 font-mono">
+                                placeholder="#6366f1"
+                                class="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 font-mono">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">حداقل XP <span class="text-red-500">*</span></label>
                             <input type="number" name="min_xp" x-model="formData.min_xp" min="0" required
-                                   placeholder="0"
-                                   class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
+                                placeholder="0"
+                                class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">حداکثر XP <span class="text-red-500">*</span></label>
                             <input type="number" name="max_xp" x-model="formData.max_xp" min="0" required
-                                   placeholder="99"
-                                   class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
+                                placeholder="99"
+                                class="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200">
                         </div>
                     </div>
                     <div class="bg-gray-50/80 rounded-2xl p-4 border-2 border-gray-200">
@@ -263,11 +265,11 @@ $levels = $levels ?? [];
             <div class="px-6 py-4 border-t-2 border-gray-200 flex-shrink-0">
                 <div class="flex gap-2">
                     <button type="submit" form="level-form"
-                            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02]">
+                        class="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl font-bold transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02]">
                         <span x-text="isEditing ? '💾 ذخیره تغییرات' : '➕ ایجاد سطح'"></span>
                     </button>
                     <button type="button" @click="closeModal()"
-                            class="flex-1 px-4 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl font-bold transition-all duration-200 shadow-sm hover:shadow-md">
+                        class="flex-1 px-4 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-xl font-bold transition-all duration-200 shadow-sm hover:shadow-md">
                         انصراف
                     </button>
                 </div>
@@ -277,23 +279,11 @@ $levels = $levels ?? [];
 </div>
 
 <script>
-function levelsManager() {
-    return {
-        showModal: false,
-        isEditing: false,
-        formData: {
-            id: null,
-            level: null,
-            title: '',
-            icon: '⭐',
-            color: '#6366f1',
-            min_xp: 0,
-            max_xp: 99
-        },
-
-        openCreateModal() {
-            this.isEditing = false;
-            this.formData = {
+    function levelsManager() {
+        return {
+            showModal: false,
+            isEditing: false,
+            formData: {
                 id: null,
                 level: null,
                 title: '',
@@ -301,67 +291,84 @@ function levelsManager() {
                 color: '#6366f1',
                 min_xp: 0,
                 max_xp: 99
-            };
-            this.showModal = true;
-        },
+            },
 
-        openEditModal(level) {
-            this.isEditing = true;
-            this.formData = {
-                id: level.id,
-                level: level.level,
-                title: level.title || '',
-                icon: level.icon || '⭐',
-                color: level.color || '#6366f1',
-                min_xp: parseInt(level.min_xp) || 0,
-                max_xp: parseInt(level.max_xp) || 0
-            };
-            this.showModal = true;
-        },
+            openCreateModal() {
+                this.isEditing = false;
+                this.formData = {
+                    id: null,
+                    level: null,
+                    title: '',
+                    icon: '⭐',
+                    color: '#6366f1',
+                    min_xp: 0,
+                    max_xp: 99
+                };
+                this.showModal = true;
+            },
 
-        closeModal() {
-            this.showModal = false;
-        },
+            openEditModal(level) {
+                this.isEditing = true;
+                this.formData = {
+                    id: level.id,
+                    level: level.level,
+                    title: level.title || '',
+                    icon: level.icon || '⭐',
+                    color: level.color || '#6366f1',
+                    min_xp: parseInt(level.min_xp) || 0,
+                    max_xp: parseInt(level.max_xp) || 0
+                };
+                this.showModal = true;
+            },
 
-        getFormAction() {
-            if (this.isEditing && this.formData.id) {
-                return '/admin/levels/' + this.formData.id;
-            }
-            return '/admin/levels/create';
-        },
+            closeModal() {
+                this.showModal = false;
+            },
 
-        deleteLevel(data) {
-            const { id, level, title, users_count } = data;
-            if (users_count > 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطا',
-                    text: `نمی‌توان این سطح را حذف کرد زیرا ${users_count} بازیکن در این سطح قرار دارند`,
-                    confirmButtonColor: '#dc2626',
-                    confirmButtonText: 'باشه'
-                });
-                return;
-            }
-            Swal.fire({
-                title: 'حذف سطح',
-                html: `آیا مطمئن هستید که می‌خواهید سطح <strong>${level}</strong> (${title}) را حذف کنید؟<br><br><span class="text-xs text-red-600">این عملیات غیرقابل بازگشت است!</span>`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: '🗑️ بله، حذف کن',
-                cancelButtonText: 'انصراف',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '/admin/levels/' + id + '/delete';
-                    document.body.appendChild(form);
-                    form.submit();
+            getFormAction() {
+                if (this.isEditing && this.formData.id) {
+                    return '/admin/levels/' + this.formData.id;
                 }
-            });
-        }
-    };
-}
+                return '/admin/levels/create';
+            },
+
+            deleteLevel(data) {
+                const {
+                    id,
+                    level,
+                    title,
+                    users_count
+                } = data;
+                if (users_count > 0) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطا',
+                        text: `نمی‌توان این سطح را حذف کرد زیرا ${users_count} بازیکن در این سطح قرار دارند`,
+                        confirmButtonColor: '#dc2626',
+                        confirmButtonText: 'باشه'
+                    });
+                    return;
+                }
+                Swal.fire({
+                    title: 'حذف سطح',
+                    html: `آیا مطمئن هستید که می‌خواهید سطح <strong>${level}</strong> (${title}) را حذف کنید؟<br><br><span class="text-xs text-red-600">این عملیات غیرقابل بازگشت است!</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: '🗑️ بله، حذف کن',
+                    cancelButtonText: 'انصراف',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/admin/levels/' + id + '/delete';
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            }
+        };
+    }
 </script>

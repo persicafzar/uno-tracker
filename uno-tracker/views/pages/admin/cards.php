@@ -31,6 +31,7 @@
             <table class="w-full min-w-[900px]">
                 <thead class="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                     <tr>
+                        <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">ID</th>
                         <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">آیکون</th>
                         <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">نام</th>
                         <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">ضریب امتیاز</th>
@@ -63,6 +64,7 @@
                             $rarity = $rarityLabels[$card['rarity']] ?? $rarityLabels['common'];
                             ?>
                             <tr class="hover:bg-indigo-50/50 transition-all duration-200 group">
+                                <td class="px-4 py-3.5 text-sm font-bold text-gray-600 whitespace-nowrap">#<?= $card['id'] ?></td>
                                 <td class="px-4 py-3.5 text-2xl whitespace-nowrap"><?= htmlspecialchars($card['emoji'] ?? '') ?></td>
                                 <td class="px-4 py-3.5">
                                     <div class="font-bold text-gray-800"><?= htmlspecialchars($card['name']) ?></div>

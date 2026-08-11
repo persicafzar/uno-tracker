@@ -91,6 +91,7 @@ $roleLabels = [
             <table class="w-full min-w-[900px]">
                 <thead class="bg-gradient-to-r from-gray-100 to-gray-200 border-b-2 border-gray-300">
                     <tr>
+                        <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">ID</th>
                         <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">کاربر</th>
                         <th class="px-4 py-3.5 text-right text-xs font-black text-gray-700 whitespace-nowrap">شماره تماس</th>
                         <th class="px-4 py-3.5 text-center text-xs font-black text-gray-700 whitespace-nowrap">نقش</th>
@@ -117,6 +118,7 @@ $roleLabels = [
                             $isSelf = $user['id'] === $admin['id'];
                             ?>
                             <tr class="hover:bg-indigo-50/50 transition-all duration-200 group">
+                                <td class="px-4 py-3.5 text-sm font-bold text-gray-600 whitespace-nowrap">#<?= $user['id'] ?></td>
                                 <td class="px-4 py-3.5">
                                     <div class="flex items-center gap-3 min-w-0">
                                         <?php if (!empty($user['avatar_path'])): ?>
